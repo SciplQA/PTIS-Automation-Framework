@@ -1,0 +1,43 @@
+{
+  "name": "ptis",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test --project=chromium --no-deps",
+    "test:headed": "playwright test --project=chromium --no-deps --headed",
+    "test:dashboard": "playwright test tests/dashboard/dashboard.spec.ts --project=chromium --no-deps",
+    "test:policy": "playwright test tests/property-tax/Masters/policy-configuration.spec.ts --project=chromium --no-deps",
+    "test:policy:headed": "playwright test tests/property-tax/Masters/policy-configuration.spec.ts --project=chromium --no-deps --headed",
+    "test:mouja": "playwright test tests/property-tax/Masters/mouja-master.spec.ts --project=chromium --no-deps",
+    "test:mouja:headed": "playwright test tests/property-tax/Masters/mouja-master.spec.ts --project=chromium --no-deps --headed",
+    "test:masters": "playwright test tests/property-tax/Masters/masters-sequential.spec.ts --project=chromium --no-deps",
+    "test:masters:headed": "playwright test tests/property-tax/Masters/masters-sequential.spec.ts --project=chromium --no-deps --headed",
+    "test:debug": "playwright test --project=chromium --no-deps --debug",
+    "test:file": "playwright test --project=chromium --no-deps",
+    "test:file:headed": "playwright test --project=chromium --no-deps --headed",
+    "test:file:debug": "playwright test --project=chromium --no-deps --debug",
+    "allure:generate": "allure serve ./allure-results",
+    "allure:open": "allure open ./allure-results",
+    "allure:serve": "allure serve ./allure-results"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Pravin400/PTIS.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Pravin400/PTIS/issues"
+  },
+  "homepage": "https://github.com/Pravin400/PTIS#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.3.0",
+    "allure": "^3.16.0",
+    "allure-playwright": "^3.11.0",
+    "dotenv": "^17.4.2"
+  }
+}

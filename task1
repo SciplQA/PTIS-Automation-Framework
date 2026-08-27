@@ -1,0 +1,18 @@
+# Playwright Automation Framework - Task List
+
+- [ ] Step 1: Base Configuration & Environment Setup
+  - [ ] Create `.env` and `.env.example`
+  - [ ] Configure `playwright.config.ts` with projects, setup dependency, and storageState
+  - [ ] Update `package.json` with helper scripts (test, allure)
+- [ ] Step 2: Global Authentication Setup (`auth.setup.ts`)
+  - [ ] Create `tests/auth/auth.setup.ts` to perform login and write to `.auth/admin.json`
+- [ ] Step 3: Base Pages & Fixtures
+  - [ ] Create `pages/BasePage.ts` (with common helpers, sidebar navigation, loader waits)
+  - [ ] Create `pages/auth/LoginPage.ts` (page objects for login input fields and submission)
+  - [ ] Create `pages/dashboard/DashboardPage.ts` (landing page with "Property Tax" card)
+  - [ ] Create `fixtures/pageFixtures.ts` to wire up page objects
+- [ ] Step 4: Write Baseline and Reuse Tests
+  - [ ] Write login validation test (without using storageState)
+  - [ ] Write dashboard verification test (automatically reusing storageState)
+- [ ] Step 5: CI/CD GitHub Actions Configuration
+  - [ ] Create `.github/workflows/playwright.yml`

@@ -1,0 +1,51 @@
+{
+  "rateSectionMaster": [
+    {
+      "description": "Create Rate Section with valid input",
+      "isStepValid": true,
+      "inputs": {
+        "rateSectionCode": "RS-01",
+        "rateSectionName": "Charai Main Road Section",
+        "effectiveDate": "2026-04-01"
+      },
+      "expectedSuccessMessage": "Rate Section added successfully"
+    },
+    {
+      "description": "Create Rate Section with missing code (invalid)",
+      "isStepValid": false,
+      "inputs": {
+        "rateSectionCode": "",
+        "rateSectionName": "Charai Main Road Section",
+        "effectiveDate": "2026-04-01"
+      },
+      "expectedErrorMessage": "Rate Section Code is required"
+    }
+  ],
+  "taxZone": [
+    {
+      "description": "Create Tax Zone with valid details",
+      "isStepValid": true,
+      "inputs": {
+        "zoneName": "Zone A",
+        "zoneCode": "ZA-001"
+      },
+      "expectedSuccessMessage": "Zone saved successfully"
+    }
+  ],
+  "searchProperty": [
+    {
+      "description": "Search by valid property number",
+      "searchCriteria": {
+        "propertyNo": "PROP-99281"
+      },
+      "expectedResultsCount": 1
+    },
+    {
+      "description": "Search by non-existent property number",
+      "searchCriteria": {
+        "propertyNo": "PROP-00000"
+      },
+      "expectedResultsCount": 0
+    }
+  ]
+}
