@@ -1,7 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { internalTest as test, expect } from '../../../fixtures/internalSessionFixtures';
 import { Page } from '@playwright/test';
-import { LoginPage } from '../../../pages/auth/LoginPage';
-import { DashboardPage } from '../../../pages/dashboard/DashboardPage';
 import { MoujaMasterPage } from '../../../pages/property-tax/Masters/Mouja-master';
 
 test.describe.configure({ mode: 'serial' });
@@ -10,31 +8,28 @@ test.describe('Property Tax - Mouja Master', () => {
   let page: Page;
   let moujaMasterPage: MoujaMasterPage;
 
-  test.beforeAll(async ({ browser }) => {
-    page = await browser.newPage();
-    const loginPage = new LoginPage(page);
-    const dashboardPage = new DashboardPage(page);
-    moujaMasterPage = new MoujaMasterPage(page);
-
-    await loginPage.navigate();
-    await loginPage.login(process.env.ADMIN_USERNAME!, process.env.ADMIN_PASSWORD!);
-    await expect(page).toHaveURL(/\/en\/home/);
-    await dashboardPage.selectPropertyTaxModule();
+  test.beforeAll(async ({ internalSession }) => {
+    page = internalSession.page;
+    moujaMasterPage = internalSession.moujaMasterPage;
     await moujaMasterPage.navigateFromPropertyTaxModule();
     await moujaMasterPage.expectLoaded();
   });
 
   test.beforeEach(async () => {
-    await page.reload();
-    if (!page.url().includes('/login')) return;
+    if (page.url().includes('/login')) {
+      throw new Error('The shared PTIS session expired during the Mouja suite. It will not re-authenticate mid-run.');
+    }
 
-    const loginPage = new LoginPage(page);
-    const dashboardPage = new DashboardPage(page);
-    await loginPage.login(process.env.ADMIN_USERNAME!, process.env.ADMIN_PASSWORD!);
-    await expect(page).toHaveURL(/\/en\/home/);
-    await dashboardPage.selectPropertyTaxModule();
-    await moujaMasterPage.navigateFromPropertyTaxModule();
-    await moujaMasterPage.expectLoaded();
+    if (await moujaMasterPage.isAddDrawerVisible().catch(() => false)) {
+      await moujaMasterPage.closeDrawer();
+    }
+    await moujaMasterPage.clearSearch();
+  });
+
+  test.afterEach(async () => {
+    if (await moujaMasterPage.isAddDrawerVisible().catch(() => false)) {
+      await moujaMasterPage.closeDrawer();
+    }
   });
 
   test('TC01 - Mouja Master page load', async () => {
@@ -275,18 +270,7 @@ test.describe('Property Tax - Mouja Master', () => {
     await moujaMasterPage.closeDrawer();
   });
 
-  test('TC31 - Newly added Mouja is displayed in the table', async ({ browser }) => {
-    if (!page.isClosed()) await page.close();
-    page = await browser.newPage();
-    const loginPage = new LoginPage(page);
-    const dashboardPage = new DashboardPage(page);
-    moujaMasterPage = new MoujaMasterPage(page);
-    await loginPage.navigate();
-    await loginPage.login(process.env.ADMIN_USERNAME!, process.env.ADMIN_PASSWORD!);
-    await expect(page).toHaveURL(/\/en\/home/);
-    await dashboardPage.selectPropertyTaxModule();
-    await moujaMasterPage.navigateFromPropertyTaxModule();
-    await moujaMasterPage.expectLoaded();
+  test('TC31 - Newly added Mouja is displayed in the table', async () => {
     await moujaMasterPage.searchMouja('MJTEST1234');
     if (await moujaMasterPage.noDataMessage.isVisible()) return;
     expect(await moujaMasterPage.getRowCount()).toBeGreaterThan(0);
@@ -298,8 +282,6 @@ test.describe('Property Tax - Mouja Master', () => {
       if (await moujaMasterPage.isAddDrawerVisible().catch(() => false)) {
         await moujaMasterPage.closeDrawer();
       }
-      await moujaMasterPage.logout();
     }
-    await page?.close();
   });
 });

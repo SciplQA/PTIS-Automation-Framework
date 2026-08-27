@@ -1,8 +1,7 @@
-import { Locator, Page } from '@playwright/test';
+import { expect, Locator, Page } from '@playwright/test';
 import { PropertyTaxBasePage } from '../PropertyTaxBasePage';
 
 export class MoujaMasterPage extends PropertyTaxBasePage {
-  private readonly navigationLink: Locator;
   readonly searchField: Locator;
   readonly table: Locator;
   readonly tableRows: Locator;
@@ -21,7 +20,6 @@ export class MoujaMasterPage extends PropertyTaxBasePage {
 
   constructor(page: Page) {
     super(page);
-    this.navigationLink = page.locator('a[href="/en/property-tax/moujamaster"]');
     this.searchField = page.getByPlaceholder('Search by Mouja Number or Name...');
     this.table = page.locator('table');
     this.tableRows = page.locator('table tbody tr');
@@ -33,7 +31,7 @@ export class MoujaMasterPage extends PropertyTaxBasePage {
       'Please check Mouja Number and Name - duplicates not allowed.',
       { exact: true }
     );
-    this.addMoujaButton = page.getByText('Add Mouja', { exact: true });
+    this.addMoujaButton = page.getByRole('button', { name: 'Add Mouja', exact: true });
     this.addMoujaDrawer = page.locator('div[role="dialog"][aria-modal="true"]').filter({
       hasText: 'Add Mouja'
     });
@@ -51,19 +49,43 @@ export class MoujaMasterPage extends PropertyTaxBasePage {
   }
 
   async expectLoaded(): Promise<void> {
-    await this.navigationLink.waitFor({ state: 'visible' });
     await this.page.waitForURL('**/en/property-tax/moujamaster');
     await this.searchField.waitFor({ state: 'visible' });
   }
 
   async searchMouja(searchText: string): Promise<void> {
     await this.searchField.fill(searchText);
-    await this.page.waitForTimeout(1000);
+    await this.waitForSearchResults(searchText);
   }
 
   async clearSearch(): Promise<void> {
     await this.searchField.fill('');
-    await this.page.waitForTimeout(1000);
+    await expect(this.searchField).toHaveValue('');
+    // Clearing a previous invalid search must wait until the stale no-data
+    // state disappears and the unfiltered records are rendered again.
+    await expect(this.noDataMessage).toBeHidden({ timeout: 5000 });
+    await expect.poll(
+      async () => this.getRowCount(),
+      { timeout: 5000, message: 'Mouja records did not reload after clearing search' }
+    ).toBeGreaterThan(0);
+  }
+
+  private async waitForSearchResults(searchText: string): Promise<void> {
+    const normalizedSearch = searchText.trim().toLowerCase();
+
+    await expect.poll(async () => {
+      if (await this.noDataMessage.isVisible()) return true;
+
+      const rows = await this.getRowTexts();
+      if (!normalizedSearch) return rows.length > 0;
+
+      return rows.length > 0 && rows.every(row =>
+        row.toLowerCase().includes(normalizedSearch)
+      );
+    }, {
+      timeout: 5000,
+      message: `Mouja results did not refresh for search: ${searchText}`,
+    }).toBeTruthy();
   }
 
   async getRowCount(): Promise<number> {
@@ -90,8 +112,22 @@ export class MoujaMasterPage extends PropertyTaxBasePage {
   }
 
   async clickAddMouja(): Promise<void> {
-    await this.addMoujaButton.click();
-    await this.addMoujaDrawer.waitFor({ state: 'visible', timeout: 5000 });
+    // The application can briefly ignore an open click while the previous
+    // drawer close animation is finishing. Retry the real UI click only while
+    // the drawer is still closed; never double-click an already-open drawer.
+    await expect(async () => {
+      await expect(this.addMoujaButton).toBeVisible();
+      await expect(this.addMoujaButton).toBeEnabled();
+
+      if (!(await this.addMoujaDrawer.isVisible())) {
+        await this.addMoujaButton.click();
+      }
+
+      await expect(this.addMoujaDrawer).toBeVisible({ timeout: 1500 });
+    }).toPass({
+      timeout: 8000,
+      intervals: [250, 500, 1000],
+    });
   }
 
   async fillMoujaNumber(value: string): Promise<void> {
@@ -113,12 +149,14 @@ export class MoujaMasterPage extends PropertyTaxBasePage {
 
   async clickCancel(): Promise<void> {
     await this.cancelButton.click();
-    await this.addMoujaDrawer.waitFor({ state: 'hidden', timeout: 3000 });
+    await expect(this.addMoujaDrawer).toBeHidden({ timeout: 5000 });
+    await expect(this.addMoujaButton).toBeEnabled();
   }
 
   async closeDrawer(): Promise<void> {
     await this.closeDrawerButton.click();
-    await this.addMoujaDrawer.waitFor({ state: 'hidden', timeout: 3000 });
+    await expect(this.addMoujaDrawer).toBeHidden({ timeout: 5000 });
+    await expect(this.addMoujaButton).toBeEnabled();
   }
 
   async isAddDrawerVisible(): Promise<boolean> {

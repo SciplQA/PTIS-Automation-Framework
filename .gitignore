@@ -5,10 +5,15 @@ playwright-report/
 blob-report/
 playwright/.cache/
 playwright/.auth/
+allure-results/
+allure-report/
+allure-report-current/
+.auth/
 
 # Markdown files
 *.md
 !COMMANDS.md
+!PROJECT_GUIDE.md
 
 # Context images
 Context images/

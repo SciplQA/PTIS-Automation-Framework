@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig } from '@playwright/test';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -47,16 +47,24 @@ export default defineConfig({
     {
       name: 'setup',
       testMatch: /.*\.setup\.ts/,
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        browserName: 'chromium',
+        // To maximize a headed Chromium window later, uncomment these lines:
+        viewport: null,
+        launchOptions: { args: ['--start-maximized'] },
+      },
     },
 
     // Main chromium browser execution (depends on 'setup' project to run first)
     {
       name: 'chromium',
-      use: { 
-        ...devices['Desktop Chrome'],
+      use: {
+        browserName: 'chromium',
         // Use the authenticated state saved by the setup project
         storageState: STORAGE_STATE,
+        // To maximize a headed Chromium window later, uncomment these lines:
+        viewport: null,
+        launchOptions: { args: ['--start-maximized'] },
       },
       dependencies: ['setup'],
     },

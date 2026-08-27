@@ -2,7 +2,6 @@ import { Locator, Page, expect } from '@playwright/test';
 import { PropertyTaxBasePage } from '../PropertyTaxBasePage';
 
 export class PolicyConfigurationMasterPage extends PropertyTaxBasePage {
-  private readonly navigationLink: Locator;
   private readonly editDrawer: Locator;
   private readonly closeEditButton: Locator;
   readonly searchField: Locator;
@@ -18,9 +17,6 @@ export class PolicyConfigurationMasterPage extends PropertyTaxBasePage {
 
   constructor(page: Page) {
     super(page);
-    this.navigationLink = page.locator(
-      'a[href="/en/property-tax/policy-configuration"]'
-    );
     this.editDrawer = page.locator('div[role="dialog"][aria-modal="true"]');
     this.closeEditButton = this.editDrawer.getByRole('button').first();
     this.searchField = page.getByPlaceholder('Search by Code, Category');
@@ -43,7 +39,6 @@ export class PolicyConfigurationMasterPage extends PropertyTaxBasePage {
   }
 
   async expectLoaded(): Promise<void> {
-    await this.navigationLink.waitFor({ state: 'visible' });
     await this.page.waitForURL('**/en/property-tax/policy-configuration');
     await this.searchField.waitFor({ state: 'visible' });
   }

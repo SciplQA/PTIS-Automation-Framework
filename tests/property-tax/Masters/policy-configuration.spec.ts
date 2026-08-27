@@ -1,25 +1,15 @@
-import { test, expect } from '@playwright/test';
+import { internalTest as test, expect } from '../../../fixtures/internalSessionFixtures';
 import { Page } from '@playwright/test';
-import { LoginPage } from '../../../pages/auth/LoginPage';
-import { DashboardPage } from '../../../pages/dashboard/DashboardPage';
 import { PolicyConfigurationMasterPage } from '../../../pages/property-tax/Masters/Policy-configuration-master';
 
-test.use({ storageState: { cookies: [], origins: [] } });
 test.describe.configure({ mode: 'serial' });
 test.describe('Property Tax - Policy Configuration Master', () => {
   let page: Page;
   let policyConfigurationMasterPage: PolicyConfigurationMasterPage;
 
-  test.beforeAll(async ({ browser }) => {
-    page = await browser.newPage();
-    const loginPage = new LoginPage(page);
-    const dashboardPage = new DashboardPage(page);
-    policyConfigurationMasterPage = new PolicyConfigurationMasterPage(page);
-
-    await loginPage.navigate();
-    await loginPage.login(process.env.ADMIN_USERNAME!, process.env.ADMIN_PASSWORD!);
-    await expect(page).toHaveURL(/\/en\/home/);
-    await dashboardPage.selectPropertyTaxModule();
+  test.beforeAll(async ({ internalSession }) => {
+    page = internalSession.page;
+    policyConfigurationMasterPage = internalSession.policyConfigurationMasterPage;
     await policyConfigurationMasterPage.navigateFromPropertyTaxModule();
     await policyConfigurationMasterPage.expectLoaded();
   });
@@ -165,8 +155,6 @@ test.describe('Property Tax - Policy Configuration Master', () => {
   test.afterAll(async () => {
     if (page && !page.isClosed()) {
       await policyConfigurationMasterPage.closeEditDrawer();
-      await policyConfigurationMasterPage.logout();
-      await page.close();
     }
   });
 });

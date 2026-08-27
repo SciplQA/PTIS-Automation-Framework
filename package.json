@@ -11,8 +11,8 @@
     "test:policy:headed": "playwright test tests/property-tax/Masters/policy-configuration.spec.ts --project=chromium --no-deps --headed",
     "test:mouja": "playwright test tests/property-tax/Masters/mouja-master.spec.ts --project=chromium --no-deps",
     "test:mouja:headed": "playwright test tests/property-tax/Masters/mouja-master.spec.ts --project=chromium --no-deps --headed",
-    "test:masters": "playwright test tests/property-tax/Masters/masters-sequential.spec.ts --project=chromium --no-deps",
-    "test:masters:headed": "playwright test tests/property-tax/Masters/masters-sequential.spec.ts --project=chromium --no-deps --headed",
+    "test:masters": "playwright test tests/property-tax/Masters --project=chromium --no-deps",
+    "test:masters:headed": "playwright test tests/property-tax/Masters --project=chromium --no-deps --headed",
     "test:debug": "playwright test --project=chromium --no-deps --debug",
     "test:file": "playwright test --project=chromium --no-deps",
     "test:file:headed": "playwright test --project=chromium --no-deps --headed",
@@ -23,16 +23,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Pravin400/PTIS.git"
+    "url": "git+https://github.com/SciplQA/PTIS-Automation-Framework.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/Pravin400/PTIS/issues"
+    "url": "https://github.com/SciplQA/PTIS-Automation-Framework/issues"
   },
-  "homepage": "https://github.com/Pravin400/PTIS#readme",
+  "homepage": "https://github.com/SciplQA/PTIS-Automation-Framework#readme",
   "devDependencies": {
     "@playwright/test": "^1.62.1",
     "@types/node": "^26.3.0",

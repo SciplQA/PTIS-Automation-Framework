@@ -19,14 +19,32 @@ export class PropertyTaxBasePage extends BasePage {
    * Helper to expand the Masters section if not expanded, and click a submenu
    */
   async selectMasterSubmenu(submenuName: string): Promise<void> {
-    const submenu = this.page.getByText(submenuName, { exact: true }).first();
+    const sidebar = this.page.getByRole('complementary');
+    const mastersGroup = sidebar.getByRole('group').first();
+    const mastersHeader = sidebar.getByText('Masters', { exact: true }).first();
+    const submenu = sidebar.getByText(submenuName, { exact: true }).first();
 
-    await this.page.getByRole('complementary').hover();
-    await this.mastersHeader.hover();
+    await sidebar.waitFor({ state: 'visible' });
+
+    // The application can render the sidebar either expanded or icon-only,
+    // depending on the native window size. Hover first to reveal its labels.
     if (!(await submenu.isVisible())) {
-      await this.mastersHeader.click();
+      await sidebar.hover();
     }
 
+    // In the icon-only layout hovering may not pin the menu open. Clicking the
+    // Masters group mirrors the manual sidebar click and works in both layouts.
+    if (!(await mastersHeader.isVisible()) && !(await submenu.isVisible())) {
+      await mastersGroup.click();
+    }
+
+    if (!(await submenu.isVisible())) {
+      await mastersHeader.waitFor({ state: 'visible', timeout: 5000 });
+      await mastersHeader.click();
+    }
+
+    await submenu.waitFor({ state: 'visible', timeout: 5000 });
+    await submenu.scrollIntoViewIfNeeded();
     await submenu.click();
     await this.waitForPageReady();
   }

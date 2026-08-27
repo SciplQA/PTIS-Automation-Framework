@@ -1,38 +1,42 @@
 # PTIS Playwright Commands
 
-Run these commands from the project root:
+## Install from GitHub
+
+### Prerequisites
+
+- Git
+- Node.js 20 LTS or newer (includes npm)
+
+Clone the repository and enter its folder:
 
 ```powershell
-cd C:\Users\Pravin.Tambe\Desktop\PTIS-Automation-Framework
+git clone https://github.com/SciplQA/PTIS-Automation-Framework.git
+cd PTIS-Automation-Framework
 ```
 
-## After cloning from GitHub
-
-Run these commands after `git clone` and before the first test run. They install project dependencies and Chromium; they do not perform any GitHub operation.
+Install the exact package versions from `package-lock.json`, install Chromium,
+and create the local environment file:
 
 ```powershell
-npm install
+npm ci
 npx playwright install chromium
 Copy-Item .env.example .env
 ```
 
-Open `.env` and set the real `BASE_URL`, `ADMIN_USERNAME`, and `ADMIN_PASSWORD` values. Do not commit `.env` or `.auth/admin.json`.
+Open `.env` and set `BASE_URL`, `ADMIN_USERNAME`, and `ADMIN_PASSWORD` for the
+environment you will test. Never commit `.env` or `.auth/`.
 
-## First-time setup
+For an existing local clone, use the same commands after pulling dependency
+changes. Use `npm install` instead of `npm ci` only when intentionally updating
+dependencies.
 
-Install project dependencies:
+## First verification
+
+Run the login checks in a visible, maximized Chromium window:
 
 ```powershell
-npm install
+npx playwright test tests/auth/login.spec.ts --project=chromium --no-deps --headed
 ```
-
-Install Playwright browsers if needed:
-
-```powershell
-npx playwright install chromium
-```
-
-Make sure `.env` contains `BASE_URL`, `ADMIN_USERNAME`, and `ADMIN_PASSWORD`.
 
 ## Common test commands
 
@@ -42,7 +46,7 @@ Run the complete test suite in Chromium without the separate setup project:
 npm test
 ```
 
-Run all tests with the browser visible, using fresh feature logins:
+Run all tests with the browser visible in one maximized Chromium window:
 
 ```powershell
 npm run test:headed
@@ -54,7 +58,7 @@ Run only the dashboard tests:
 npm run test:dashboard
 ```
 
-Run only the 15 Policy Configuration tests with one login and one shared page:
+Run only the 15 Policy Configuration tests with one shared login:
 
 ```powershell
 npm run test:policy
@@ -66,7 +70,7 @@ Run the Policy Configuration tests with the browser visible:
 npm run test:policy:headed
 ```
 
-Run all 31 Mouja Master tests with one login and one shared page:
+Run all 31 Mouja Master tests with one shared login:
 
 ```powershell
 npm run test:mouja
@@ -78,13 +82,15 @@ Run Mouja Master tests with the browser visible:
 npm run test:mouja:headed
 ```
 
-Run all Master suites sequentially in one Chromium worker:
+Run all Master suites with one shared PTIS login. The first internal Master
+suite logs in and enters Property Tax; later Master files reuse that same page,
+navigate through the sidebar, and log out only after the final Master suite:
 
 ```powershell
 npm run test:masters
 ```
 
-Run the single-login Master workflow with the browser visible:
+Run all Master suites with the browser visible in one shared session:
 
 ```powershell
 npm run test:masters:headed
@@ -102,6 +108,18 @@ Run one test file with the browser visible:
 npx playwright test tests/property-tax/Masters/policy-configuration.spec.ts --project=chromium --headed
 ```
 
+Run Mouja TC30 and TC31 only:
+
+```powershell
+npx playwright test tests/property-tax/Masters/mouja-master.spec.ts --project=chromium --no-deps --headed -g "TC(30|31)"
+```
+
+Run Mouja TC30/TC31 followed by all Policy tests in one shared session:
+
+```powershell
+npx playwright test tests/property-tax/Masters/mouja-master.spec.ts tests/property-tax/Masters/policy-configuration.spec.ts --project=chromium --no-deps --headed -g "TC(30|31)|Policy Configuration Master.*TC(0[1-9]|1[0-5])"
+```
+
 Run tests in debug mode:
 
 ```powershell
@@ -116,19 +134,17 @@ npx playwright test --project=setup
 
 ## Important command difference
 
-Use the normal command when the test needs authentication setup:
-
-```powershell
-npm run test:policy
-```
-
-The `test:file` script includes `--no-deps`, so it skips the setup project. The active feature suites perform their own login, so this is the normal mode for them:
+`--no-deps` skips the separate `auth.setup.ts` project. The internal Property
+Tax suites use their own shared worker session, so this is the normal mode for
+running a selected feature file:
 
 ```powershell
 npm run test:file -- tests/property-tax/Masters/policy-configuration.spec.ts
 ```
 
-The Policy Configuration suite clears storage state, logs in once in `beforeAll`, runs serially on one shared page, and logs out once in `afterAll`. Its npm commands use `--no-deps` so `auth.setup.ts` does not perform a second login.
+When more than one internal feature file is selected in the same command,
+`internalSessionFixtures.ts` logs in once, keeps the same page while the files
+navigate through the visible PTIS sidebar, and logs out once at the end.
 
 ## Reports
 
@@ -179,7 +195,8 @@ Remove-Item -Recurse -Force test-results, playwright-report -ErrorAction Silentl
 | `tests/property-tax/Masters/mouja-master.spec.ts` | The 31 Mouja Master test cases |
 | `pages/dashboard/DashboardPage.ts` | Dashboard page actions and Property Tax module navigation |
 | `pages/property-tax/Masters/Policy-configuration-master.ts` | Policy selectors and reusable screen actions |
-| `fixtures/pageFixtures.ts` | Injects page objects into tests |
+| `fixtures/pageFixtures.ts` | Injects page objects into independent tests |
+| `fixtures/internalSessionFixtures.ts` | One shared login/page for internal Property Tax suites |
 | `tests/auth/auth.setup.ts` | Logs in and creates `.auth/admin.json` |
 | `playwright.config.ts` | Chromium project, one worker, reporters, base URL, and setup dependency |
 | `test-results/` | Failure screenshots, videos, traces, and result artifacts |
@@ -197,15 +214,16 @@ This separation is correct. Keep test cases in `tests/` and UI selectors/actions
 
 ## Single-browser behavior
 
-`playwright.config.ts` has one browser project, `chromium`, and `workers: 1`. The Policy and Mouja feature suites deliberately create one shared page for their serial workflows. The dashboard and other independent tests use fresh pages and log in themselves. This prevents the expired `.auth/admin.json` setup state from blocking the full run.
+`playwright.config.ts` has one browser project, `chromium`, and `workers: 1`.
+Headed runs open Chromium maximized. Login and dashboard validations remain
+independent; Construction Type, Mouja, Policy Configuration, and future
+internal screen files use the worker-scoped shared session.
 
 Do not use one shared page in `beforeAll` for independent tests. That makes later tests depend on earlier tests and can hide failures caused by leftover state.
 
 ## Logout behavior
 
-The migrated suites do not call application logout after every test. Each test uses a fresh Playwright page/context, and Playwright closes that context automatically after the test. This is safer than sharing one page across 46 independent cases.
-
-The Policy Configuration and Mouja suites use one shared page and one final UI logout when run individually. `test:masters` uses `masters-sequential.spec.ts`, which is the combined one-login workflow for Construction Type, Mouja, and Policy Configuration. The full command skips the separate setup project, so there is no extra setup login.
+Construction Type, Mouja, and Policy Configuration use `fixtures/internalSessionFixtures.ts`. This worker-scoped fixture logs in once, enters Property Tax once, shares the same page across the internal test files, and logs out once after the final internal suite. Each screen's test file only navigates to its own sidebar route; it must not add its own login or logout. With the configured `workers: 1`, this also applies when `npm run test:headed` runs the complete suite: login screen tests remain independent, then the internal Master suites share one authenticated session.
 
 ## Source versus generated files
 

@@ -15,8 +15,6 @@ export class ConstructionTypeMasterPage extends PropertyTaxBasePage {
 
 	async expectLoaded(): Promise<void> {
 		await this.pageHeading.waitFor({ state: 'visible' });
-        await this.page.waitForTimeout(5000);
 	}
-     
 
 }
