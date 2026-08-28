@@ -1,1 +1,0 @@
-{"attachments":[],"errors":[{"message":"beforeEach hook failed: Test timeout of 30000ms exceeded while running \"beforeEach\" hook.","trace":"Test timeout of 30000ms exceeded while running \"beforeEach\" hook.\n    at C:\\Users\\Pravin.Tambe\\Desktop\\PTIS-Automation-Framework\\tests\\dashboard\\dashboard.spec.ts:7:8","timestamp":1787751487526}]}

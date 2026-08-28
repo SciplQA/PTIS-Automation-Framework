@@ -237,7 +237,7 @@ test.describe('Property Tax - Mouja Master', () => {
       await moujaMasterPage.closeDrawer();
       return;
     }
-    await page.waitForTimeout(500);
+    // await page.waitForTimeout(500);
   });
 
   test('TC27 - Duplicate Mouja Number shows validation', async () => {

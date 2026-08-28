@@ -1,5 +1,6 @@
 import { defineConfig } from '@playwright/test';
 import dotenv from 'dotenv';
+import os from 'os';
 import path from 'path';
 
 // Read environment variables from file.
@@ -15,6 +16,7 @@ export const STORAGE_STATE = path.join(__dirname, '.auth/admin.json');
  */
 export default defineConfig({
   testDir: './tests',
+  globalSetup: require.resolve('./global-setup'),
   /* Run the suite through one Chromium worker for predictable application state. */
   fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -27,7 +29,39 @@ export default defineConfig({
   reporter: [
     ['list'],
     ['line'],
-    ['allure-playwright', { outputFolder: 'allure-results' }],
+    ['allure-playwright', {
+      resultsDir: 'allure-results',
+      detail: true,
+      suiteTitle: true,
+      globalLabels: {
+        epic: 'PTIS',
+        layer: 'UI',
+      },
+      environmentInfo: {
+        Application: 'PTIS Property Tax',
+        Environment: process.env.TEST_ENVIRONMENT || 'QA',
+        'Base URL': process.env.BASE_URL || 'https://ptisqa.scipl.info.in',
+        Browser: 'Chromium',
+        'Operating System': `${os.platform()} ${os.release()}`,
+        'Node.js': process.version,
+      },
+      categories: [
+        {
+          name: 'Timeouts',
+          matchedStatuses: ['failed', 'broken'],
+          messageRegex: '.*[Tt]imeout.*',
+        },
+        {
+          name: 'Assertion failures',
+          matchedStatuses: ['failed'],
+          messageRegex: '.*expect\\(.*',
+        },
+        {
+          name: 'Automation errors',
+          matchedStatuses: ['broken'],
+        },
+      ],
+    }],
     ['html', { open: 'never' }]
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -50,8 +84,8 @@ export default defineConfig({
       use: {
         browserName: 'chromium',
         // To maximize a headed Chromium window later, uncomment these lines:
-        viewport: null,
-        launchOptions: { args: ['--start-maximized'] },
+        // viewport: null,
+        // launchOptions: { args: ['--start-maximized'] },
       },
     },
 
@@ -63,8 +97,8 @@ export default defineConfig({
         // Use the authenticated state saved by the setup project
         storageState: STORAGE_STATE,
         // To maximize a headed Chromium window later, uncomment these lines:
-        viewport: null,
-        launchOptions: { args: ['--start-maximized'] },
+        // viewport: null,
+        // launchOptions: { args: ['--start-maximized'] },
       },
       dependencies: ['setup'],
     },

@@ -82,6 +82,42 @@ Run Mouja Master tests with the browser visible:
 npm run test:mouja:headed
 ```
 
+Run all 43 Social Attribute Master tests with the shared PTIS login:
+
+```powershell
+npm run test:social
+```
+
+Run Social Attribute Master tests with the browser visible:
+
+```powershell
+npm run test:social:headed
+```
+
+Run all 37 Tax Zone Master tests with the shared PTIS login:
+
+```powershell
+npm run test:tax-zone
+```
+
+Run Tax Zone Master tests with the browser visible:
+
+```powershell
+npm run test:tax-zone:headed
+```
+
+Run all 14 Tax Zoning tests with the shared PTIS login:
+
+```powershell
+npm run test:tax-zoning
+```
+
+Run Tax Zoning tests with the browser visible:
+
+```powershell
+npm run test:tax-zoning:headed
+```
+
 Run all Master suites with one shared PTIS login. The first internal Master
 suite logs in and enters Property Tax; later Master files reuse that same page,
 navigate through the sidebar, and log out only after the final Master suite:
@@ -148,6 +184,13 @@ navigate through the visible PTIS sidebar, and logs out once at the end.
 
 ## Reports
 
+Every Playwright command now clears `allure-results/` before execution, so a
+new report contains only the current run. Generate a fresh static Allure report:
+
+```powershell
+npm run allure:generate
+```
+
 Open the latest HTML report:
 
 ```powershell
@@ -164,6 +207,12 @@ Open the existing Allure report:
 
 ```powershell
 npm run allure:open
+```
+
+Remove both the raw Allure results and generated report manually:
+
+```powershell
+npm run allure:clean
 ```
 
 ## Useful maintenance commands
@@ -193,8 +242,14 @@ Remove-Item -Recurse -Force test-results, playwright-report -ErrorAction Silentl
 | `tests/dashboard/dashboard.spec.ts` | Two dashboard and Property Tax navigation tests |
 | `tests/property-tax/Masters/policy-configuration.spec.ts` | The 15 Policy Configuration test cases |
 | `tests/property-tax/Masters/mouja-master.spec.ts` | The 31 Mouja Master test cases |
+| `tests/property-tax/Masters/social-attribute.spec.ts` | The 43 Social Attribute Master test cases |
+| `tests/property-tax/Masters/tax-zone.spec.ts` | The 37 Tax Zone Master test cases |
+| `tests/property-tax/Masters/tax-zoning.spec.ts` | The 14 Tax Zoning workflow test cases |
 | `pages/dashboard/DashboardPage.ts` | Dashboard page actions and Property Tax module navigation |
 | `pages/property-tax/Masters/Policy-configuration-master.ts` | Policy selectors and reusable screen actions |
+| `pages/property-tax/Masters/SocialAttributeMasterPage.ts` | Social Attribute selectors and reusable screen actions |
+| `pages/property-tax/Masters/TaxZonePage.ts` | Tax Zone selectors and reusable screen actions |
+| `pages/property-tax/Masters/TaxZoningPage.ts` | Tax Zoning selectors and reusable screen actions |
 | `fixtures/pageFixtures.ts` | Injects page objects into independent tests |
 | `fixtures/internalSessionFixtures.ts` | One shared login/page for internal Property Tax suites |
 | `tests/auth/auth.setup.ts` | Logs in and creates `.auth/admin.json` |

@@ -22,6 +22,7 @@ export class PropertyTaxBasePage extends BasePage {
     const sidebar = this.page.getByRole('complementary');
     const mastersGroup = sidebar.getByRole('group').first();
     const mastersHeader = sidebar.getByText('Masters', { exact: true }).first();
+    const mastersToggle = sidebar.locator('summary').filter({ hasText: 'Masters' }).first();
     const submenu = sidebar.getByText(submenuName, { exact: true }).first();
 
     await sidebar.waitFor({ state: 'visible' });
@@ -39,8 +40,11 @@ export class PropertyTaxBasePage extends BasePage {
     }
 
     if (!(await submenu.isVisible())) {
-      await mastersHeader.waitFor({ state: 'visible', timeout: 5000 });
-      await mastersHeader.click();
+      // Click the interactive <summary>, not its child text span. Clicking the
+      // span is unreliable while the responsive sidebar is animating because
+      // the summary itself can intercept pointer events.
+      await mastersToggle.waitFor({ state: 'visible', timeout: 5000 });
+      await mastersToggle.click();
     }
 
     await submenu.waitFor({ state: 'visible', timeout: 5000 });

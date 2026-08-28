@@ -1,2 +1,0 @@
-DIAGNOSTIC - Local Storage: {}
-DIAGNOSTIC - Session Storage: {"is_tab_active_session":"true"}

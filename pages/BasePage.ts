@@ -15,7 +15,7 @@ export class BasePage {
     // Selectors from screenshots & standard headers
     this.headerTitle = page.locator('text=Thane Municipal Corporation QA');
     this.profileDropdown = page.getByRole('button', { name: /Admin scipl pvt/ });
-    this.logoutButton = page.locator('text=Logout');
+    this.logoutButton = page.getByText('Logout', { exact: true }).last();
     
     // Standard spinner / loader overlays (can be customized if they have unique classes)
     this.loadingOverlay = page.locator('.loading-overlay, .spinner, .loader');
@@ -46,9 +46,22 @@ export class BasePage {
    * Logs out the user from the application
    */
   async logout(): Promise<void> {
-    await this.profileDropdown.click();
-    await this.logoutButton.click();
-    await this.page.waitForURL('**/login');
+    const usernameInput = this.page.getByPlaceholder('Enter your username');
+
+    await expect(async () => {
+      if (await usernameInput.isVisible().catch(() => false)) return;
+
+      if (!(await this.logoutButton.isVisible().catch(() => false))) {
+        await this.profileDropdown.click();
+      }
+
+      await expect(this.logoutButton).toBeVisible({ timeout: 2000 });
+      await this.logoutButton.click();
+      await expect(usernameInput).toBeVisible({ timeout: 5000 });
+    }).toPass({
+      timeout: 15000,
+      intervals: [500, 1000],
+    });
   }
 
   /**

@@ -5,12 +5,18 @@ import { DashboardPage } from '../pages/dashboard/DashboardPage';
 import { ConstructionTypeMasterPage } from '../pages/property-tax/Masters/Construction-type-master';
 import { MoujaMasterPage } from '../pages/property-tax/Masters/Mouja-master';
 import { PolicyConfigurationMasterPage } from '../pages/property-tax/Masters/Policy-configuration-master';
+import { SocialAttributeMasterPage } from '../pages/property-tax/Masters/SocialAttributeMasterPage';
+import { TaxZonePage } from '../pages/property-tax/Masters/TaxZonePage';
+import { TaxZoningPage } from '../pages/property-tax/Masters/TaxZoningPage';
 
 export type InternalSession = {
   page: Page;
   constructionTypeMasterPage: ConstructionTypeMasterPage;
   moujaMasterPage: MoujaMasterPage;
   policyConfigurationMasterPage: PolicyConfigurationMasterPage;
+  socialAttributeMasterPage: SocialAttributeMasterPage;
+  taxZonePage: TaxZonePage;
+  taxZoningPage: TaxZoningPage;
 };
 
 type InternalSessionWorkerFixtures = {
@@ -53,12 +59,22 @@ export const internalTest = baseTest.extend<{}, InternalSessionWorkerFixtures>({
       constructionTypeMasterPage: new ConstructionTypeMasterPage(page),
       moujaMasterPage: new MoujaMasterPage(page),
       policyConfigurationMasterPage: new PolicyConfigurationMasterPage(page),
+      socialAttributeMasterPage: new SocialAttributeMasterPage(page),
+      taxZonePage: new TaxZonePage(page),
+      taxZoningPage: new TaxZoningPage(page),
     };
 
     try {
       await use(internalSession);
     } finally {
       if (!page.isClosed() && !page.url().includes('/login')) {
+        // Prevent an assertion failure with an open confirmation modal from
+        // blocking the profile menu and causing a second teardown timeout.
+        const openDialog = page.getByRole('dialog').last();
+        if (await openDialog.isVisible().catch(() => false)) {
+          await page.keyboard.press('Escape').catch(() => undefined);
+          await openDialog.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => undefined);
+        }
         await dashboardPage.logout();
       }
       if (!page.isClosed()) {
