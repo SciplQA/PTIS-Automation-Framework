@@ -160,7 +160,7 @@ this.dataTypeFilter =
 
 this.attributeFilter =
     page.getByRole('combobox', {
-        name: 'All Attributes'
+        name: /Attribute Type|All Attributes/i
     });
 
 
@@ -206,7 +206,7 @@ this.attributeFilter =
 
         await this.addSocialAttributeButton.click();
 
-        await this.page.waitForTimeout(1000);
+        //await this.page.waitForTimeout(1000);
 
         console.log(
             'Add Social Attribute form opened'
@@ -239,7 +239,7 @@ async enterSocialAttributeCode(code: string) {
 
     await input.fill('');
 
-    await this.page.waitForTimeout(300);
+    // await this.page.waitForTimeout(300);
 
     console.log(
         'After clear:',
@@ -248,7 +248,7 @@ async enterSocialAttributeCode(code: string) {
 
     await input.fill(code);
 
-    await this.page.waitForTimeout(1000);
+  //await this.page.waitForTimeout(1000);
 
     console.log(
         'After entering:',
@@ -268,7 +268,7 @@ async enterSocialAttributeCode(code: string) {
             delay: 100
         });
 
-        await this.page.waitForTimeout(1000);
+        //await this.page.waitForTimeout(1000);
     }
 
     const actualValue = await input.inputValue();
@@ -316,7 +316,7 @@ async enterSocialAttributeCode(code: string) {
         delay: 50
     });
 
-    await this.page.waitForTimeout(500);
+    // await this.page.waitForTimeout(500);
 
     const actualValue = await input.inputValue();
 
@@ -358,7 +358,7 @@ async enterSocialAttributeCode(code: string) {
 
     await dropdown.click();
 
-    await this.page.waitForTimeout(1000);
+   //await this.page.waitForTimeout(1000);
 
     // Select DECIMAL option
     const decimalOption = this.page.getByText(
@@ -375,7 +375,7 @@ async enterSocialAttributeCode(code: string) {
 
     await decimalOption.click();
 
-    await this.page.waitForTimeout(500);
+    // await this.page.waitForTimeout(500);
 
     console.log(
         'Decimal data type selected successfully'
@@ -403,7 +403,7 @@ async enterSocialAttributeCode(code: string) {
 
         await dropdown.click();
 
-        await this.page.waitForTimeout(500);
+        // await this.page.waitForTimeout(500);
 
         const litreOption =
             this.page.getByText(
@@ -420,7 +420,7 @@ async enterSocialAttributeCode(code: string) {
 
         await litreOption.click();
 
-        await this.page.waitForTimeout(500);
+        // await this.page.waitForTimeout(500);
 
         console.log(
             'Litre - L unit selected'
@@ -449,7 +449,7 @@ async enterSocialAttributeCode(code: string) {
 
         await saveButton.click();
 
-        await this.page.waitForTimeout(2000);
+        //await this.page.waitForTimeout(2000);
 
         console.log(
             'Save button clicked successfully'
@@ -470,7 +470,7 @@ async enterSocialAttributeCode(code: string) {
 
         await this.searchInput.fill(value);
 
-        await this.page.waitForTimeout(1000);
+       //await this.page.waitForTimeout(1000);
 
         console.log(
             `Search value entered: ${value}`
@@ -486,7 +486,7 @@ async enterSocialAttributeCode(code: string) {
 
         await this.searchInput.fill('');
 
-        await this.page.waitForTimeout(500);
+        // await this.page.waitForTimeout(500);
 
         console.log(
             'Search cleared'
@@ -525,14 +525,14 @@ async selectBitThenIntDataType() {
     await dataTypeFilter.scrollIntoViewIfNeeded();
 
     // Wait so you can see the dropdown
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     await dataTypeFilter.click();
 
     console.log('All Data Types dropdown opened');
 
     // Wait so dropdown options are visible
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
 
     // ================================================
@@ -554,14 +554,14 @@ async selectBitThenIntDataType() {
     await bitOption.scrollIntoViewIfNeeded();
 
     // Wait so you can SEE BIT
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     await bitOption.click();
 
     console.log('BIT data type selected');
 
     // Wait after BIT selection
-    await this.page.waitForTimeout(3000);
+    //await this.page.waitForTimeout(3000);
 
 
     // ================================================
@@ -582,14 +582,14 @@ async selectBitThenIntDataType() {
     await selectedDataType.scrollIntoViewIfNeeded();
 
     // Wait so you can see BIT selected
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     await selectedDataType.click();
 
     console.log('Data Type dropdown opened again');
 
     // Wait for INT option
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
 
     // ================================================
@@ -611,14 +611,14 @@ async selectBitThenIntDataType() {
     await intOption.scrollIntoViewIfNeeded();
 
     // Wait so you can SEE INT
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     await intOption.click();
 
     console.log('INT data type selected');
 
     // Wait after INT selection
-    await this.page.waitForTimeout(3000);
+    //await this.page.waitForTimeout(3000);
 
     console.log(
         'BIT and INT data types selected successfully'
@@ -651,7 +651,7 @@ async selectParentOnlyThenDiscountApplicable() {
     await allAttributesDropdown.scrollIntoViewIfNeeded();
 
     // Wait 2 seconds so you can see the dropdown
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     await allAttributesDropdown.click();
 
@@ -660,7 +660,7 @@ async selectParentOnlyThenDiscountApplicable() {
     );
 
     // Wait for dropdown options to be visible
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
 
     // =================================================
@@ -682,7 +682,7 @@ async selectParentOnlyThenDiscountApplicable() {
     await parentOnlyOption.scrollIntoViewIfNeeded();
 
     // Wait 2 seconds so you can SEE Parent Only
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     await parentOnlyOption.click();
 
@@ -692,7 +692,7 @@ async selectParentOnlyThenDiscountApplicable() {
 
     // Wait 3 seconds after selection
     // so you can see the selected value
-    await this.page.waitForTimeout(3000);
+    //await this.page.waitForTimeout(3000);
 
 
     // =================================================
@@ -713,7 +713,7 @@ async selectParentOnlyThenDiscountApplicable() {
     await selectedParentOnly.scrollIntoViewIfNeeded();
 
     // Wait 2 seconds
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     await selectedParentOnly.click();
 
@@ -722,7 +722,7 @@ async selectParentOnlyThenDiscountApplicable() {
     );
 
     // Wait for options to appear
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
 
     // =================================================
@@ -744,7 +744,7 @@ async selectParentOnlyThenDiscountApplicable() {
     await discountApplicableOption.scrollIntoViewIfNeeded();
 
     // Wait 2 seconds so you can SEE the option
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     await discountApplicableOption.click();
 
@@ -753,7 +753,7 @@ async selectParentOnlyThenDiscountApplicable() {
     );
 
     // Wait 3 seconds after selection
-    await this.page.waitForTimeout(3000);
+    //await this.page.waitForTimeout(3000);
 
     console.log(
         'Parent Only and Discount Applicable selected successfully'
@@ -780,7 +780,7 @@ async selectParentOnlyThenDiscountApplicable() {
         await editButton.scrollIntoViewIfNeeded();
 
         // Wait so Edit button is visible on screen
-        await this.page.waitForTimeout(2000);
+        //await this.page.waitForTimeout(2000);
 
         await editButton.click();
 
@@ -789,7 +789,7 @@ async selectParentOnlyThenDiscountApplicable() {
         );
 
         // Wait for Edit drawer/form to open
-        await this.page.waitForTimeout(2000);
+        //await this.page.waitForTimeout(2000);
     }
 
 
@@ -813,7 +813,7 @@ async selectParentOnlyThenDiscountApplicable() {
         await activeSwitch.scrollIntoViewIfNeeded();
 
         // Wait so Active switch is visible
-        await this.page.waitForTimeout(2000);
+        //await this.page.waitForTimeout(2000);
 
         await activeSwitch.click();
 
@@ -822,7 +822,7 @@ async selectParentOnlyThenDiscountApplicable() {
         );
 
         // Wait 2 seconds after OFF
-        await this.page.waitForTimeout(2000);
+        //await this.page.waitForTimeout(2000);
     }
 
 
@@ -846,7 +846,7 @@ async selectParentOnlyThenDiscountApplicable() {
         await activeSwitch.scrollIntoViewIfNeeded();
 
         // Wait so Active switch is visible
-        await this.page.waitForTimeout(2000);
+        //await this.page.waitForTimeout(2000);
 
         await activeSwitch.click();
 
@@ -855,7 +855,7 @@ async selectParentOnlyThenDiscountApplicable() {
         );
 
         // Wait 2 seconds after ON
-        await this.page.waitForTimeout(2000);
+        //await this.page.waitForTimeout(2000);
     }
 
 // =====================================================
@@ -879,7 +879,7 @@ async openSelectUnitDropdown() {
     await unitDropdown.scrollIntoViewIfNeeded();
 
     // Wait so you can see the Unit dropdown
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     await unitDropdown.click();
 
@@ -888,7 +888,7 @@ async openSelectUnitDropdown() {
     );
 
     // Wait so dropdown options are visible
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 }
 
 
@@ -916,7 +916,7 @@ async selectLitreUnitFromEdit() {
     await litreOption.scrollIntoViewIfNeeded();
 
     // Wait so you can SEE Litre option
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     await litreOption.click();
 
@@ -925,7 +925,7 @@ async selectLitreUnitFromEdit() {
     );
 
     // Wait after selection
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 }
 
 // =====================================================
@@ -947,7 +947,7 @@ async clickUpdate() {
 
     await updateButton.scrollIntoViewIfNeeded();
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     await updateButton.click();
 
@@ -956,7 +956,7 @@ async clickUpdate() {
     );
 
     // Wait for update operation to complete
-    await this.page.waitForTimeout(3000);
+    //await this.page.waitForTimeout(3000);
 }
     // =====================================================
     // TC25 - WAIT AFTER UPDATE
@@ -964,7 +964,7 @@ async clickUpdate() {
 
     async waitAfterUpdate() {
 
-        await this.page.waitForTimeout(2000);
+        //await this.page.waitForTimeout(2000);
 
         console.log(
             'Wait completed after Update'
@@ -992,7 +992,7 @@ async clickPaginationPage(pageNumber: number) {
     await pageButton.scrollIntoViewIfNeeded();
 
     // Wait so you can see the page button
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     await pageButton.click();
 
@@ -1001,7 +1001,7 @@ async clickPaginationPage(pageNumber: number) {
     );
 
     // Wait for page data/UI to update
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 }
 
 
@@ -1012,7 +1012,7 @@ async clickPaginationPage(pageNumber: number) {
 
 async waitAfterLitreSelection() {
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     console.log(
         'Wait completed after Litre selection'
@@ -1036,12 +1036,12 @@ async selectRowsPerPageFive() {
 
     await rowsPerPageDropdown.scrollIntoViewIfNeeded();
 
-    await this.page.waitForTimeout(1000);
+    //await this.page.waitForTimeout(1000);
 
     // Select value 5
     await rowsPerPageDropdown.selectOption('5');
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     // Verify selected value
     const selectedValue =
@@ -1077,7 +1077,7 @@ async searchHasSolar() {
 
     await this.searchInput.fill('HAS_SOLA');
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     console.log(
         'HAS_SOLA searched successfully'
@@ -1104,11 +1104,11 @@ async clickEdit() {
 
     await editButton.scrollIntoViewIfNeeded();
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     await editButton.click();
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     console.log(
         'Edit button clicked successfully'
@@ -1136,11 +1136,11 @@ async switchActiveOffFromEdit() {
 
     await activeSwitch.scrollIntoViewIfNeeded();
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     await activeSwitch.click();
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     console.log(
         'Active switched OFF'
@@ -1168,11 +1168,11 @@ async switchActiveOnFromEdit() {
 
     await inactiveSwitch.scrollIntoViewIfNeeded();
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     await inactiveSwitch.click();
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     console.log(
         'Active switched ON'
@@ -1200,11 +1200,11 @@ async updateSocialAttribute() {
 
     await updateButton.scrollIntoViewIfNeeded();
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     await updateButton.click();
 
-    await this.page.waitForTimeout(3000);
+    ////await this.page.waitForTimeout(3000);
 
     console.log(
         'Social Attribute updated successfully'
@@ -1226,7 +1226,7 @@ async searchEvCharging() {
 
     await this.searchInput.fill('HAS_EV_CHARGING');
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     console.log(
         'HAS_EV_CHARGING searched successfully'
@@ -1254,11 +1254,11 @@ async clickEvChargingEdit() {
 
     await editButton.scrollIntoViewIfNeeded();
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     await editButton.click();
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     console.log(
         'EV Charging Edit clicked'
@@ -1280,7 +1280,7 @@ async openUnitDropdown() {
 
     await this.unitCombobox.click();
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     console.log(
         'Unit dropdown opened'
@@ -1308,7 +1308,7 @@ async selectLitreOption() {
 
     await litreOption.click();
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     console.log(
         'Litre - L selected'
@@ -1347,7 +1347,7 @@ async openAdminMenu() {
 
     await this.adminButton.click();
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     console.log(
         'Admin menu opened'
@@ -1374,7 +1374,7 @@ async openLanguageMenu() {
 
     await languageButton.click();
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     console.log(
         'Language menu opened'
@@ -1389,10 +1389,7 @@ async openLanguageMenu() {
 
 async selectMarathi() {
 
-    const marathiOption = this.page
-        .getByRole('option', {
-            name: 'मराठी (Marathi)'
-        });
+    const marathiOption = this.page.getByRole('option', { name: /Marathi|मराठी/i }).first();
 
     await marathiOption.waitFor({
         state: 'visible',
@@ -1401,7 +1398,7 @@ async selectMarathi() {
 
     await marathiOption.click();
 
-    await this.page.waitForTimeout(3000);
+    //await this.page.waitForTimeout(3000);
 
     console.log(
         'Marathi selected'
@@ -1414,11 +1411,8 @@ async selectMarathi() {
 // =====================================================
 
 async openDataTypeFilter() {
-
-    const filter = this.page
-        .getByRole('combobox', {
-            name: 'डेटा प्रकारानुसार फिल्टर करा'
-        });
+    // Support both labels while the language switch is settling.
+    const filter = this.page.getByRole('combobox', { name: /Data Type|\u0921\u0947\u091f\u093e/ }).first();
 
     await filter.waitFor({
         state: 'visible',
@@ -1427,7 +1421,7 @@ async openDataTypeFilter() {
 
     await filter.click();
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     console.log(
         'Data Type filter opened'
@@ -1455,7 +1449,7 @@ async selectBitOption() {
 
     await bitOption.click();
 
-    await this.page.waitForTimeout(3000);
+    //await this.page.waitForTimeout(3000);
 
     console.log(
         'BIT selected'
@@ -1472,10 +1466,12 @@ async selectBitOption() {
 
 async selectChildAttribute() {
 
-    const filter = this.page
-        .getByRole('combobox', {
-            name: 'वैशिष्ट्य प्रकारानुसार फिल्टर करा'
-        });
+    // The language switch can leave this control in English while the
+    // translated label is still being applied. Prefer the stable English
+    // locator and retain a translated-label fallback.
+    const filter = this.attributeFilter.or(
+        this.page.getByRole('combobox', { name: /attribute.*filter|वैशिष्ट्य/i })
+    ).first();
 
     await filter.waitFor({
         state: 'visible',
@@ -1484,12 +1480,9 @@ async selectChildAttribute() {
 
     await filter.click();
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
-    const childOption = this.page
-        .getByRole('option', {
-            name: 'केवळ उप (चाइल्ड)'
-        });
+    const childOption = this.page.getByRole('option', { name: /Child Only|केवळ उप|उप.*चाइल्ड/i }).first();
 
     await childOption.waitFor({
         state: 'visible',
@@ -1498,7 +1491,7 @@ async selectChildAttribute() {
 
     await childOption.click();
 
-    await this.page.waitForTimeout(3000);
+    //await this.page.waitForTimeout(3000);
 
     console.log(
         'Child attribute selected'
@@ -1514,10 +1507,7 @@ async selectChildAttribute() {
 
 async resetAndChangeToEnglish() {
 
-    const resetButton = this.page
-        .getByRole('button', {
-            name: 'रीसेट करा'
-        });
+    const resetButton = this.page.getByRole('button', { name: /Reset|रीसेट/i }).first();
 
     await resetButton.waitFor({
         state: 'visible',
@@ -1526,7 +1516,7 @@ async resetAndChangeToEnglish() {
 
     await resetButton.click();
 
-    await this.page.waitForTimeout(2000);
+    //await this.page.waitForTimeout(2000);
 
     const adminButton = this.page
         .getByRole('button', {
@@ -1535,16 +1525,13 @@ async resetAndChangeToEnglish() {
 
     await adminButton.click();
 
-    await this.page.waitForTimeout(1000);
+    //await this.page.waitForTimeout(1000);
 
-    const languageButton = this.page
-        .getByRole('button', {
-            name: /भाषा/
-        });
+    const languageButton = this.page.getByRole('button', { name: /Language|भाषा/i }).first();
 
     await languageButton.click();
 
-    await this.page.waitForTimeout(1000);
+    //await this.page.waitForTimeout(1000);
 
     const englishOption = this.page
         .getByRole('option', {
@@ -1553,7 +1540,7 @@ async resetAndChangeToEnglish() {
 
     await englishOption.click();
 
-    await this.page.waitForTimeout(3000);
+    //await this.page.waitForTimeout(3000);
 
     console.log(
         'Filters reset and language changed to English'

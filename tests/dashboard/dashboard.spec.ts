@@ -26,7 +26,7 @@ test.describe('Dashboard and Module Navigation', () => {
   test('Verify sidebar navigation menus are present in Property Tax Department', async ({ dashboardPage, page }) => {
     // Enter the Property Tax module
     await dashboardPage.selectPropertyTaxModule();
-    await page.getByRole('complementary').hover();
+    await dashboardPage.revealSidebarMenus();
 
     // Verify sidebar menu sections exist (e.g. Masters, Dashboard, PTIS, Report)
     const mastersMenu = page.getByText('Masters', { exact: true }).first();

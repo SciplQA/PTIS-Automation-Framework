@@ -174,7 +174,7 @@ export class TaxZoningPage extends PropertyTaxBasePage {
    */
   async clickApply(): Promise<void> {
     await this.btnApplyFilters.click();
-    await this.page.waitForTimeout(1000);
+    // await this.page.waitForTimeout(1000);
   }
 
   /**
@@ -182,7 +182,7 @@ export class TaxZoningPage extends PropertyTaxBasePage {
    */
   async clickReset(): Promise<void> {
     await this.btnResetFilters.click();
-    await this.page.waitForTimeout(1000);
+    // await this.page.waitForTimeout(1000);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -194,11 +194,11 @@ export class TaxZoningPage extends PropertyTaxBasePage {
    */
   async selectComboboxOption(inputLocator: Locator, optionText: string): Promise<void> {
     await inputLocator.click();
-    await this.page.waitForTimeout(500);
+    // await this.page.waitForTimeout(500);
     const option = this.page.locator('[role="option"], ul li, [role="listbox"] [role="option"]').filter({ hasText: optionText }).first();
     await option.waitFor({ state: 'visible', timeout: 5000 });
     await option.click();
-    await this.page.waitForTimeout(500);
+    // await this.page.waitForTimeout(500);
   }
 
   /**
@@ -206,14 +206,14 @@ export class TaxZoningPage extends PropertyTaxBasePage {
    */
   async selectWardOption(optionText: string): Promise<void> {
     await this.btnSelectWardCombobox.click();
-    await this.page.waitForTimeout(500);
+    // await this.page.waitForTimeout(500);
     const option = this.page.locator('[role="option"], ul li, [role="listbox"] [role="option"]').filter({ hasText: optionText }).first();
     await option.waitFor({ state: 'visible', timeout: 5000 });
     await option.click();
-    await this.page.waitForTimeout(500);
+    // await this.page.waitForTimeout(500);
     // Click dropdown button again to close overlay
     await this.btnSelectWardCombobox.click();
-    await this.page.waitForTimeout(500);
+    // await this.page.waitForTimeout(500);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -243,7 +243,7 @@ export class TaxZoningPage extends PropertyTaxBasePage {
   async clickEditForRow(wardNo: string, propertyRange: string): Promise<void> {
     const row = this.getRowByDetails(wardNo, propertyRange);
     await row.locator('button[aria-label="Edit"]').click();
-    await this.page.waitForTimeout(1000);
+    // await this.page.waitForTimeout(1000);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -263,7 +263,7 @@ export class TaxZoningPage extends PropertyTaxBasePage {
    */
   async closeDrawerViaX(): Promise<void> {
     await this.btnDrawerCloseX.click();
-    await this.page.waitForTimeout(1000);
+    // await this.page.waitForTimeout(1000);
   }
 
   /** Fill the Add/Edit form. */
@@ -301,7 +301,7 @@ export class TaxZoningPage extends PropertyTaxBasePage {
     const confirmBtn = this.page.locator('[role="dialog"] button:has-text("Delete"), [role="alertdialog"] button:has-text("Delete"), button:has-text("Confirm"), button:has-text("Yes"), button:has-text("Yes, Delete")').last();
     await confirmBtn.waitFor({ state: 'visible', timeout: 5000 });
     await confirmBtn.click();
-    await this.page.waitForTimeout(1000);
+    // await this.page.waitForTimeout(1000);
   }
 
   /**
@@ -319,6 +319,6 @@ export class TaxZoningPage extends PropertyTaxBasePage {
     await this.abstractSearchInput.clear();
     await this.abstractSearchInput.fill(wardName);
     await this.abstractBtnSearch.first().click();
-    await this.page.waitForTimeout(2000);
+    // await this.page.waitForTimeout(2000);
   }
 }

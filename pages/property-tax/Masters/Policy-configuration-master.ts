@@ -45,13 +45,13 @@ export class PolicyConfigurationMasterPage extends PropertyTaxBasePage {
 
   async searchPolicy(searchText: string): Promise<void> {
     await this.searchField.fill(searchText);
-    await this.page.waitForTimeout(1000);
+    // await this.page.waitForTimeout(1000);
   }
 
   async clearSearch(): Promise<void> {
     await this.searchField.fill('');
     await expect(this.searchField).toHaveValue('');
-    await this.page.waitForTimeout(1200);
+    // await this.page.waitForTimeout(1200);
   }
 
   async getAssessmentYearRow(): Promise<Locator> {
@@ -71,7 +71,7 @@ export class PolicyConfigurationMasterPage extends PropertyTaxBasePage {
   async toggleStatus(): Promise<{ oldState: string | null; newState: string | null }> {
     const oldState = await this.getToggleState();
     await this.statusToggle.click();
-    await this.page.waitForTimeout(300);
+    // await this.page.waitForTimeout(300);
     const newState = await this.getToggleState();
     return { oldState, newState };
   }
@@ -94,7 +94,7 @@ export class PolicyConfigurationMasterPage extends PropertyTaxBasePage {
 
   async clickUpdate(): Promise<void> {
     await this.updateButton.click();
-    await this.page.waitForTimeout(500);
+    // await this.page.waitForTimeout(500);
   }
 
   async closeEditDrawer(): Promise<void> {
