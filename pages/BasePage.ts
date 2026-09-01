@@ -15,7 +15,9 @@ export class BasePage {
     // Selectors from screenshots & standard headers
     this.headerTitle = page.locator('text=Thane Municipal Corporation QA');
     this.profileDropdown = page.getByRole('button', { name: /Admin scipl pvt/ });
-    this.logoutButton = page.getByText('Logout', { exact: true }).last();
+    // The profile menu is translated with the rest of the screen. Keep the
+    // logout action discoverable after a multilingual smoke test as well.
+    this.logoutButton = page.getByText(/Logout|लॉग\s*आउट|लॉगआउट|बाहेर\s*पडा/i).last();
     
     // Standard spinner / loader overlays (can be customized if they have unique classes)
     this.loadingOverlay = page.locator('.loading-overlay, .spinner, .loader');

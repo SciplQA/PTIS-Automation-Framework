@@ -83,12 +83,16 @@ export default defineConfig({
       use: {
         browserName: 'chromium',
         // To maximize a headed Chromium window later, uncomment these lines:
-        // viewport: null,
-        // launchOptions: { args: ['--start-maximized'] },
+        viewport: null,
+        launchOptions: { args: ['--start-maximized'] },
       },
     },
 
-    // Main chromium browser execution (depends on 'setup' project to run first)
+    // Main Chromium execution. Feature suites use the worker-scoped internal
+    // session fixture, so they authenticate once per worker. Keeping this
+    // project independent prevents a targeted single-file run from first
+    // running the separate setup login and then logging in again in the
+    // fixture.
     {
       name: 'chromium',
       use: {
@@ -96,10 +100,9 @@ export default defineConfig({
         // Use the authenticated state saved by the setup project
         storageState: STORAGE_STATE,
         // To maximize a headed Chromium window later, uncomment these lines:
-        // viewport: null,
-        // launchOptions: { args: ['--start-maximized'] },
+        viewport: null,
+        launchOptions: { args: ['--start-maximized'] },
       },
-      dependencies: ['setup'],
     },
 
     // {
