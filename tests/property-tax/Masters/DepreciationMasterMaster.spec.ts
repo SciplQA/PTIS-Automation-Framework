@@ -36,7 +36,10 @@ test.describe('Property Tax - Depreciation Master', () => {
     // test starts from the Depreciation Master screen instead of relogging.
     if (testInfo.status === 'failed' && !internalSession.page.isClosed()) {
       await internalSession.page.keyboard.press('Escape').catch(() => undefined);
-      await internalSession.depreciationMasterPage.navigateFromPropertyTaxModule().catch(() => undefined);
+      const alreadyOnDepreciation = /depreciation/i.test(internalSession.page.url());
+      if (!alreadyOnDepreciation) {
+        await internalSession.depreciationMasterPage.navigateFromPropertyTaxModule().catch(() => undefined);
+      }
       await internalSession.depreciationMasterPage.expectLoaded().catch(() => undefined);
     }
   });
@@ -278,8 +281,8 @@ test.describe('Property Tax - Depreciation Master', () => {
     }
 
     // Current defect workaround: the same valid range is accepted when the
-    // user first opens the page containing the highest configured ages.
-    await depreciation.goToLastPage();
+    // user moves exactly one page forward from page one to page two.
+    await depreciation.goToNextPage();
     testRange = await depreciation.addRange(testRange);
     rangeCreated = true;
   });

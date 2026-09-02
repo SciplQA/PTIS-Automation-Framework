@@ -202,6 +202,16 @@ export class DepreciationMasterPage extends PropertyTaxBasePage {
     }
   }
 
+  /** Navigate exactly one pagination page forward and wait for its data. */
+  async goToNextPage(): Promise<void> {
+    const nextPage = this.page.getByRole('button', { name: 'Go to next page' }).first();
+    await expect(nextPage).toBeEnabled({ timeout: 5000 });
+    const previousInfo = await this.paginationInfo.innerText().catch(() => '');
+    await nextPage.click({ timeout: 5000 });
+    await expect.poll(async () => this.paginationInfo.innerText().catch(() => ''), { timeout: 5000 })
+      .not.toBe(previousInfo);
+  }
+
   /** Return to pagination page one without scanning or changing later pages. */
   async goToFirstPage(): Promise<void> {
     const firstPage = this.page.getByRole('button', { name: 'Go to first page' }).first();
@@ -334,13 +344,17 @@ export class DepreciationMasterPage extends PropertyTaxBasePage {
   }
 
   async clickDeleteRange(range: DepreciationRange): Promise<void> {
-    const rangeButton = (await this.showRange(range)) ?? this.rangeButton(range);
-    if (!rangeButton) {
-      throw new Error(`Range card ${range.min}-${range.max} is not rendered; cannot locate its delete action.`);
-    }
-    await rangeButton.scrollIntoViewIfNeeded().catch(() => undefined);
-    const card = rangeButton.locator('xpath=..');
+    // Delete Range is a single panel-level control. Select the requested
+    // range card first; do not search for a delete button inside the card.
+    const rangeButton = this.rangeButton(range);
+    await rangeButton.scrollIntoViewIfNeeded();
+    await expect(rangeButton).toBeVisible({ timeout: 10000 });
+    await rangeButton.click();
+    // The delete control belongs to the panel, not to the card itself.
+    const card = this.page;
     const deleteButton = card.getByRole('button', { name: /Delete Range|रेंज हटाएं|रेंज हटवा|रेंज हटाएँ/i }).first();
+    await expect(deleteButton).toBeVisible({ timeout: 5000 });
+    await expect(deleteButton).toBeEnabled({ timeout: 5000 });
     if (await deleteButton.isVisible().catch(() => false)) {
       await deleteButton.click();
     } else {

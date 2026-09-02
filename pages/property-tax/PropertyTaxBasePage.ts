@@ -30,13 +30,18 @@ export class PropertyTaxBasePage extends BasePage {
     // The application can render the sidebar either expanded or icon-only,
     // depending on the native window size. Hover first to reveal its labels.
     if (!(await submenu.isVisible())) {
-      await sidebar.hover();
+      // In headed runs with a maximized/native viewport the responsive aside
+      // can be translated partly outside the viewport. Playwright's normal
+      // hoverability check then retries until the test hook times out even
+      // though the sidebar is present. Force the interaction and rely on the
+      // visible submenu assertion below as the readiness signal.
+      await sidebar.hover({ force: true });
     }
 
     // In the icon-only layout hovering may not pin the menu open. Clicking the
     // Masters group mirrors the manual sidebar click and works in both layouts.
     if (!(await mastersHeader.isVisible()) && !(await submenu.isVisible())) {
-      await mastersGroup.click();
+      await mastersGroup.click({ force: true });
     }
 
     if (!(await submenu.isVisible())) {
@@ -44,13 +49,14 @@ export class PropertyTaxBasePage extends BasePage {
       // span is unreliable while the responsive sidebar is animating because
       // the summary itself can intercept pointer events.
       await mastersToggle.waitFor({ state: 'visible', timeout: 5000 });
-      await mastersToggle.click();
+      await mastersToggle.click({ force: true });
     }
 
     await submenu.waitFor({ state: 'visible', timeout: 5000 });
     await submenu.scrollIntoViewIfNeeded();
     await submenu.click();
-    await this.waitForPageReady();
+    await this.page.waitForLoadState('domcontentloaded').catch(() => undefined);
+    await this.waitForLoaderToDisappear().catch(() => undefined);
   }
 
   /**

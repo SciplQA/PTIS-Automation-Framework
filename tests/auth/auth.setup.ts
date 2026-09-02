@@ -9,6 +9,13 @@ setup('authenticate as admin', async ({ page }) => {
     throw new Error('ADMIN_USERNAME and ADMIN_PASSWORD must be defined in the .env file');
   }
 
+  // PTIS requires this per-tab marker in addition to its auth cookies. It is
+  // not included in Playwright's storageState file, so seed it before the
+  // login page (and subsequent dashboard navigation) is loaded.
+  await page.addInitScript(() => {
+    window.sessionStorage.setItem('is_tab_active_session', 'true');
+  });
+
   // Navigate to base URL
   await page.goto('/');
 

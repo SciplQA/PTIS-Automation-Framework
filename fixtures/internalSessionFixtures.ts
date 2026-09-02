@@ -4,7 +4,6 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { LoginPage } from '../pages/auth/LoginPage';
-import { DashboardPage } from '../pages/dashboard/DashboardPage';
 import { ConstructionTypeMasterPage } from '../pages/property-tax/Masters/Construction-type-master';
 import { MoujaMasterPage } from '../pages/property-tax/Masters/Mouja-master';
 import { PolicyConfigurationMasterPage } from '../pages/property-tax/Masters/Policy-configuration-master';
@@ -12,6 +11,7 @@ import { SocialAttributeMasterPage } from '../pages/property-tax/Masters/SocialA
 import { TaxZonePage } from '../pages/property-tax/Masters/TaxZonePage';
 import { TaxZoningPage } from '../pages/property-tax/Masters/TaxZoningPage';
 import { DepreciationMasterPage } from '../pages/property-tax/Masters/DepreciationMasterMasterPage';
+import { STORAGE_STATE } from '../playwright.config';
 
 export type InternalSession = {
   page: Page;
@@ -49,21 +49,99 @@ export const internalTest = baseTest.extend<{}, InternalSessionWorkerFixtures>({
     // that whole flow once, rather than creating one video per test.
     const videoDir = path.resolve('test-results', '_suite-video');
     fs.mkdirSync(videoDir, { recursive: true });
+    const savedAuthState = fs.existsSync(STORAGE_STATE) ? STORAGE_STATE : undefined;
     const context = await browser.newContext({
+      // `viewport: null` delegates sizing to the native headed window. In
+      // this environment Chromium starts at an 800px mobile breakpoint, so
+      // the property-tax sidebar is translated off-screen and navigation
+      // cannot reach Masters. Keep the worker context at the same 1280x720
+      // dimensions as the recording instead of relying on window maximize.
       viewport: workerInfo.project.use.viewport,
+      storageState: savedAuthState,
       recordVideo: {
         dir: videoDir,
         size: { width: 1280, height: 720 },
       },
     });
+    // The PTIS shell checks this tab marker in sessionStorage before it
+    // accepts the auth cookies. Playwright storageState persists cookies and
+    // localStorage, but intentionally does not persist sessionStorage, so a
+    // freshly-created worker context otherwise gets "Session expired" even
+    // when auth_token/refresh_token are still valid. Seed it before any app
+    // script runs; it is scoped to this context and is never copied between
+    // test cases.
+    await context.addInitScript(() => {
+      window.sessionStorage.setItem('is_tab_active_session', 'true');
+    });
     const page = await context.newPage();
     const loginPage = new LoginPage(page);
-    const dashboardPage = new DashboardPage(page);
 
-    await loginPage.navigate();
-    await loginPage.login(username, password);
-    await expect(page).toHaveURL(/\/en\/home/);
-    await dashboardPage.selectPropertyTaxModule();
+    // Reuse the setup project's cookies/refresh token. The application can
+    // still reject a structurally valid storage file after its server-side
+    // session expires, so validate the rendered dashboard and refresh the
+    // state with one credential login only when necessary. This bootstrap is
+    // performed once per worker; a failed test never logs out or logs in again.
+    if (savedAuthState) {
+      await page.goto('/en/home', {
+        waitUntil: 'domcontentloaded',
+        timeout: 20000,
+      }).catch(() => undefined);
+    }
+
+    const propertyTaxCard = page.getByRole('link', { name: 'Navigate to Property Tax' });
+
+    const loginAndSaveState = async (): Promise<void> => {
+      // Do not use BasePage.navigateTo/login here: its network-idle wait is
+      // unsuitable for this application (long polling can keep it open for
+      // 30 seconds and make the beforeAll hook appear to hang).
+      await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => undefined);
+      // The login shell renders a desktop and responsive form together. Use
+      // the visible named inputs and first submit control to avoid strict-mode
+      // ambiguity while still targeting the real form.
+      await page.locator('input[name="username"]:visible').first().fill(username, { timeout: 10000 });
+      await page.locator('input[name="password"]:visible').first().fill(password, { timeout: 10000 });
+      await page.getByRole('button', { name: 'SIGN IN' }).first().click();
+      await page.waitForURL(/\/en\/home(?:[/?#]|$)/, { timeout: 20000 });
+      await propertyTaxCard.waitFor({ state: 'visible', timeout: 15000 });
+      await page.context().storageState({ path: STORAGE_STATE });
+      console.log('AUTH BOOTSTRAP: stored session was rejected; refreshed it once.');
+    };
+
+    const authenticated = await propertyTaxCard
+      .waitFor({ state: 'visible', timeout: 8000 })
+      .then(() => true)
+      .catch(() => false);
+
+    if (!authenticated) {
+      await loginAndSaveState();
+    } else {
+      console.log('AUTH BOOTSTRAP: reused saved session state.');
+    }
+
+    // Enter Property Tax without the network-idle wait. The module route and
+    // its own visible controls are the deterministic readiness signals.
+    await propertyTaxCard.click({ force: true });
+    await page.waitForURL(/\/en\/property-tax(?:[/?#]|$)/, { timeout: 15000 }).catch(() => undefined);
+    await page.waitForLoadState('domcontentloaded').catch(() => undefined);
+
+    // A stale server-side session can render the dashboard card from the
+    // cached shell, then redirect to the login page only after the module is
+    // opened. Detect that second-stage rejection and refresh once, still
+    // during worker bootstrap and never as a response to an individual test.
+    const sessionExpired = await page
+      .getByText(/Session expired\. Please login again/i)
+      .isVisible({ timeout: 1500 })
+      .catch(() => false);
+    const propertyTaxSidebar = page.getByRole('complementary');
+    const moduleLoaded = await propertyTaxSidebar
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
+    if (sessionExpired || !moduleLoaded || /\/login(?:[/?#]|$)/i.test(page.url())) {
+      await loginAndSaveState();
+      await propertyTaxCard.click({ force: true });
+      await page.waitForURL(/\/en\/property-tax(?:[/?#]|$)/, { timeout: 15000 }).catch(() => undefined);
+      await propertyTaxSidebar.waitFor({ state: 'visible', timeout: 15000 });
+    }
 
     const internalSession: InternalSession = {
       page,
