@@ -3,6 +3,8 @@ import { Page } from '@playwright/test';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import util from 'util';
+import { spawnSync } from 'child_process';
 import { LoginPage } from '../pages/auth/LoginPage';
 import { ConstructionTypeMasterPage } from '../pages/property-tax/Masters/Construction-type-master';
 import { MoujaMasterPage } from '../pages/property-tax/Masters/Mouja-master';
@@ -11,7 +13,121 @@ import { SocialAttributeMasterPage } from '../pages/property-tax/Masters/SocialA
 import { TaxZonePage } from '../pages/property-tax/Masters/TaxZonePage';
 import { TaxZoningPage } from '../pages/property-tax/Masters/TaxZoningPage';
 import { DepreciationMasterPage } from '../pages/property-tax/Masters/DepreciationMasterMasterPage';
+import { PtisPropertyTypeMasterPage } from '../pages/property-tax/Masters/PropertyTypeMasterPage';
+import { WeightageMasterPage } from '../pages/property-tax/Masters/WeightageMaster';
 import { STORAGE_STATE } from '../playwright.config';
+
+type FailedTestVideoWindow = {
+  title: string;
+  startedAt: number;
+  finishedAt: number;
+};
+
+// The authenticated worker context records one continuous high-quality video.
+// These timestamps let the worker finalizer extract a short clip for only the
+// tests that actually failed, without creating a new context or logging in
+// again between tests.
+const failedTestVideoWindows: FailedTestVideoWindow[] = [];
+let suiteVideoStartedAt = 0;
+
+const failedStatus = (status: string): boolean =>
+  status === 'failed' || status === 'timedOut' || status === 'broken';
+
+const fileSlug = (value: string): string =>
+  value.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 90) || 'failed-test';
+
+const findAllureResultForTest = (allureResultsDir: string, title: string): string | undefined => {
+  const candidates = fs.readdirSync(allureResultsDir)
+    .filter(entry => entry.endsWith('-result.json'))
+    .map(entry => {
+      const resultPath = path.join(allureResultsDir, entry);
+      try {
+        const result = JSON.parse(fs.readFileSync(resultPath, 'utf8')) as { name?: string; start?: number };
+        return { resultPath, name: result.name ?? '', start: result.start ?? 0, modified: fs.statSync(resultPath).mtimeMs };
+      } catch {
+        return undefined;
+      }
+    })
+    .filter((candidate): candidate is { resultPath: string; name: string; start: number; modified: number } => Boolean(candidate))
+    .filter(candidate => candidate.name === title || candidate.name.includes(title))
+    .sort((a, b) => (b.start - a.start) || (b.modified - a.modified));
+  return candidates[0]?.resultPath;
+};
+
+const attachAllureFile = (
+  allureResultsDir: string,
+  testTitle: string,
+  filePath: string,
+  attachmentName: string,
+  contentType: string,
+): void => {
+  if (!fs.existsSync(allureResultsDir) || !fs.existsSync(filePath)) return;
+  const resultPath = findAllureResultForTest(allureResultsDir, testTitle);
+  if (!resultPath) return;
+  const source = path.basename(filePath);
+  const allureAttachmentPath = path.join(allureResultsDir, source);
+  if (!fs.existsSync(allureAttachmentPath)) fs.copyFileSync(filePath, allureAttachmentPath);
+  const result = JSON.parse(fs.readFileSync(resultPath, 'utf8')) as {
+    attachments?: Array<{ name: string; type: string; source: string }>;
+  };
+  result.attachments ??= [];
+  if (!result.attachments.some(attachment => attachment.source === source)) {
+    result.attachments.push({ name: attachmentName, type: contentType, source });
+    fs.writeFileSync(resultPath, JSON.stringify(result, null, 2));
+  }
+};
+
+const ffmpegAvailable = (): boolean => {
+  try {
+    return spawnSync('ffmpeg', ['-version'], { stdio: 'ignore', windowsHide: true }).status === 0;
+  } catch {
+    return false;
+  }
+};
+
+const createFailureVideoClips = (
+  source: string,
+  suiteCopy: string,
+  archiveDir: string,
+  allureResultsDir: string,
+): void => {
+  if (!suiteVideoStartedAt || failedTestVideoWindows.length === 0) return;
+  const canClip = ffmpegAvailable();
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+  for (const [index, window] of failedTestVideoWindows.entries()) {
+    // Include a little context before and after the failed action so the
+    // report shows the screen state and the validation/error that followed.
+    const startSeconds = Math.max(0, (window.startedAt - suiteVideoStartedAt) / 1000 - 2);
+    const endSeconds = Math.max(startSeconds + 3, (window.finishedAt - suiteVideoStartedAt) / 1000 + 2);
+    const durationSeconds = Math.min(45, Math.max(5, endSeconds - startSeconds));
+    const clipName = `ptis-failed-${fileSlug(window.title)}-${stamp}-${index + 1}.webm`;
+    const clipPath = path.resolve('test-results', 'failed-clips', clipName);
+    fs.mkdirSync(path.dirname(clipPath), { recursive: true });
+
+    let outputPath: string | undefined;
+    if (canClip) {
+      const clipArgs = [
+        '-hide_banner', '-loglevel', 'error', '-y',
+        '-ss', startSeconds.toFixed(3), '-i', source,
+        '-t', durationSeconds.toFixed(3), '-c', 'copy', clipPath,
+      ];
+      const clipResult = spawnSync('ffmpeg', clipArgs, { stdio: 'ignore', windowsHide: true });
+      if (clipResult.status === 0 && fs.existsSync(clipPath) && fs.statSync(clipPath).size > 0) outputPath = clipPath;
+    }
+
+    if (outputPath) {
+      const archiveClip = path.join(archiveDir, clipName);
+      fs.copyFileSync(outputPath, archiveClip);
+      attachAllureFile(allureResultsDir, window.title, outputPath, 'Failed test screen video clip', 'video/webm');
+    } else {
+      // A missing ffmpeg must never turn a test failure into a reporting
+      // failure. The complete recording remains available and is linked to
+      // this failed test until ffmpeg is installed on the machine.
+      attachAllureFile(allureResultsDir, window.title, suiteCopy, 'Failed test video (full suite fallback)', 'video/webm');
+    }
+  }
+};
 
 export type InternalSession = {
   page: Page;
@@ -22,10 +138,21 @@ export type InternalSession = {
   taxZonePage: TaxZonePage;
   taxZoningPage: TaxZoningPage;
   depreciationMasterPage: DepreciationMasterPage;
+  propertyTypeMasterPage: PtisPropertyTypeMasterPage;
+  weightageMasterPage: WeightageMasterPage;
 };
 
 type InternalSessionWorkerFixtures = {
   internalSession: InternalSession;
+};
+
+type InternalSessionTestFixtures = {
+  // Reuse the worker-owned authenticated page for suites that were converted
+  // from the legacy page fixture. This prevents a second unauthenticated
+  // browser context from being created for `{ page }` in those specs.
+  page: Page;
+  /** Automatically attaches readable runtime data and logs to Allure. */
+  testDiagnostics: void;
 };
 
 /**
@@ -36,7 +163,97 @@ type InternalSessionWorkerFixtures = {
  * after the last suite. New feature suites should import `internalTest` and
  * navigate from the existing Property Tax sidebar instead of logging in.
  */
-export const internalTest = baseTest.extend<{}, InternalSessionWorkerFixtures>({
+export const internalTest = baseTest.extend<InternalSessionTestFixtures, InternalSessionWorkerFixtures>({
+  testDiagnostics: [async ({ internalSession }, use, testInfo) => {
+    const testStartedAt = Date.now();
+    const output: string[] = [];
+    const originalLog = console.log;
+    const originalError = console.error;
+    const capture = (level: string, args: unknown[]) => {
+      output.push(`[${level}] ${args.map(value => typeof value === 'string' ? value : util.inspect(value, { depth: 4, breakLength: 140 })).join(' ')}`);
+    };
+
+    console.log = (...args: unknown[]) => {
+      capture('INFO', args);
+      originalLog(...args);
+    };
+    console.error = (...args: unknown[]) => {
+      capture('ERROR', args);
+      originalError(...args);
+    };
+    const pageErrorHandler = (error: Error) => capture('PAGE ERROR', [error.message, error.stack ?? '']);
+    internalSession.page.on('pageerror', pageErrorHandler);
+
+    try {
+      await use();
+    } finally {
+      internalSession.page.removeListener('pageerror', pageErrorHandler);
+      console.log = originalLog;
+      console.error = originalError;
+
+      if (failedStatus(testInfo.status)) {
+        failedTestVideoWindows.push({
+          title: testInfo.title,
+          startedAt: testStartedAt,
+          finishedAt: Date.now(),
+        });
+        // This is available immediately in Allure, even when ffmpeg is not
+        // installed to cut the short video after the worker context closes.
+        if (!internalSession.page.isClosed()) {
+          const failedScreen = await internalSession.page
+            .screenshot({ type: 'png', fullPage: false, animations: 'disabled' })
+            .catch(() => undefined);
+          if (failedScreen) {
+            await testInfo.attach('failed-screen-at-error', {
+              body: failedScreen,
+              contentType: 'image/png',
+            }).catch(() => undefined);
+          }
+        }
+      }
+
+      const currentUrl = (() => {
+        try {
+          return internalSession.page.url();
+        } catch {
+          return '(page closed)';
+        }
+      })();
+      const details = {
+        test: testInfo.title,
+        titlePath: testInfo.titlePath,
+        status: testInfo.status,
+        expectedStatus: testInfo.expectedStatus,
+        durationMs: testInfo.duration,
+        project: testInfo.project.name,
+        url: currentUrl,
+        annotations: testInfo.annotations,
+        data: output,
+      };
+      const readable = [
+        `Test: ${details.test}`,
+        `Status: ${details.status} (expected: ${details.expectedStatus})`,
+        `Duration: ${details.durationMs} ms`,
+        `Project: ${details.project}`,
+        `URL: ${details.url}`,
+        '',
+        'Runtime data and execution log:',
+        output.length > 0 ? output.join('\n') : '(No console data was emitted)',
+      ].join('\n');
+
+      await testInfo.attach('test-data-and-execution-log', {
+        body: readable,
+        contentType: 'text/plain',
+      }).catch(() => undefined);
+      await testInfo.attach('test-execution-details', {
+        body: JSON.stringify(details, null, 2),
+        contentType: 'application/json',
+      }).catch(() => undefined);
+    }
+  }, { auto: true }],
+  page: async ({ internalSession }, use) => {
+    await use(internalSession.page);
+  },
   internalSession: [async ({ browser }, use, workerInfo) => {
     const username = process.env.ADMIN_USERNAME;
     const password = process.env.ADMIN_PASSWORD;
@@ -73,6 +290,7 @@ export const internalTest = baseTest.extend<{}, InternalSessionWorkerFixtures>({
     await context.addInitScript(() => {
       window.sessionStorage.setItem('is_tab_active_session', 'true');
     });
+    suiteVideoStartedAt = Date.now();
     const page = await context.newPage();
     const loginPage = new LoginPage(page);
 
@@ -152,6 +370,8 @@ export const internalTest = baseTest.extend<{}, InternalSessionWorkerFixtures>({
       taxZonePage: new TaxZonePage(page),
       taxZoningPage: new TaxZoningPage(page),
       depreciationMasterPage: new DepreciationMasterPage(page),
+      propertyTypeMasterPage: new PtisPropertyTypeMasterPage(page),
+      weightageMasterPage: new WeightageMasterPage(page),
     };
 
     try {
@@ -227,7 +447,14 @@ export const internalTest = baseTest.extend<{}, InternalSessionWorkerFixtures>({
                 fs.writeFileSync(resultPath, JSON.stringify(result, null, 2));
               }
             }
+
           }
+
+          // Add a short, failure-specific clip to each failed test. This is
+          // performed after context.close() because Playwright finalizes the
+          // WebM only at that point. If ffmpeg is unavailable, the same test
+          // receives the full-suite video as a safe fallback instead.
+          createFailureVideoClips(source, testResultsCopy, archiveDir, allureResultsDir);
         }
       }
     }

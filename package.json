@@ -19,6 +19,8 @@
     "test:tax-zoning:headed": "playwright test tests/property-tax/Masters/tax-zoning.spec.ts --project=chromium --no-deps --headed",
     "test:depreciation": "playwright test tests/property-tax/Masters/DepreciationMasterMaster.spec.ts --project=chromium --no-deps",
     "test:depreciation:headed": "playwright test tests/property-tax/Masters/DepreciationMasterMaster.spec.ts --project=chromium --no-deps --headed",
+    "test:weightage": "playwright test tests/property-tax/Masters/weightage-master.spec.ts --project=chromium --no-deps",
+    "test:weightage:headed": "playwright test tests/property-tax/Masters/weightage-master.spec.ts --project=chromium --no-deps --headed",
     "test:masters": "playwright test tests/property-tax/Masters --project=chromium --no-deps",
     "test:masters:headed": "playwright test tests/property-tax/Masters --project=chromium --no-deps --headed",
     "test:debug": "playwright test --project=chromium --no-deps --debug",

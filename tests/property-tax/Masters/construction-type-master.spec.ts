@@ -1,5 +1,5 @@
 import { internalTest as test, expect } from '../../../fixtures/internalSessionFixtures';
-import { addAllureMetadata } from '../../../helpers/allureHelper';
+import { addAllureMetadata, failBlockedFeature } from '../../../helpers/allureHelper';
 
 test.describe('Property Tax - Construction Type Master', () => {
   // Keep reporting independent: a failed test does not skip the remaining tests.
@@ -18,10 +18,15 @@ test.describe('Property Tax - Construction Type Master', () => {
     // Reuse the current master page between CRUD steps. Re-navigating before
     // every test can race the list refresh and temporarily hide the record
     // created by TC-CT-06.
-    if (!internalSession.page.url().includes('/en/property-tax/constructiontype')) {
-      await master.navigateFromPropertyTaxModule();
+    try {
+      if (!internalSession.page.url().includes('/en/property-tax/constructiontype')) {
+        await master.navigateFromPropertyTaxModule();
+      }
+      await master.expectLoaded();
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      await failBlockedFeature(`Construction Type Master is not available or could not be opened on the QA server.\n\n${detail}`);
     }
-    await master.expectLoaded();
   });
 
   test('TC-CT-01: Navigate and verify Construction Type page heading is visible', async ({ internalSession }) => {

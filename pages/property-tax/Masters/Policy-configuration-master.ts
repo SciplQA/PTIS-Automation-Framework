@@ -98,9 +98,19 @@ export class PolicyConfigurationMasterPage extends PropertyTaxBasePage {
   }
 
   async closeEditDrawer(): Promise<void> {
-    if (!(await this.policyValueInput.isVisible().catch(() => false))) return;
-    await this.closeEditButton.click();
-    await this.policyValueInput.waitFor({ state: 'hidden', timeout: 5000 });
+    // Teardown is best-effort. A detached drawer/page must not turn the
+    // preceding test into an afterAll hook failure.
+    try {
+      if (this.page.isClosed()) return;
+      if (!(await this.policyValueInput.isVisible().catch(() => false))) return;
+      if (!(await this.closeEditButton.isVisible().catch(() => false))) return;
+      await this.closeEditButton.click({ timeout: 3000 }).catch(() => undefined);
+      await this.policyValueInput
+        .waitFor({ state: 'hidden', timeout: 5000 })
+        .catch(() => undefined);
+    } catch {
+      // Preserve the actual test result when cleanup races with navigation.
+    }
   }
 
   async getAssessmentYearStatus(): Promise<string> {

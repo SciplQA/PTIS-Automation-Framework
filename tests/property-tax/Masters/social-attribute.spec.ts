@@ -1,6 +1,7 @@
 import { Page } from '@playwright/test';
 import { internalTest as test, expect } from '../../../fixtures/internalSessionFixtures';
 import { SocialAttributeMasterPage } from '../../../pages/property-tax/Masters/SocialAttributeMasterPage';
+import { failBlockedFeature } from '../../../helpers/allureHelper';
 
 function generateUniqueUppercase(length: number): string {
     let value = Date.now();
@@ -12,12 +13,14 @@ function generateUniqueUppercase(length: number): string {
 }
 
 
-test.describe.configure({ mode: 'serial' });
+// Keep source order on the single worker without serial-mode skip cascading.
+test.describe.configure({ mode: 'default' });
 test.describe('Property Tax - Social Attribute Master', () => {
 
     let page: Page;
     let socialAttributePage: SocialAttributeMasterPage;
     let socialAttributeValue: string;
+    let screenBlockReason: string | undefined;
 
 
     // =====================================================
@@ -27,8 +30,18 @@ test.describe('Property Tax - Social Attribute Master', () => {
     test.beforeAll(async ({ internalSession }) => {
         page = internalSession.page;
         socialAttributePage = internalSession.socialAttributeMasterPage;
-        await socialAttributePage.navigateFromPropertyTaxModule();
-        await socialAttributePage.expectLoaded();
+        try {
+            await socialAttributePage.navigateFromPropertyTaxModule();
+            await socialAttributePage.expectLoaded();
+        } catch (error) {
+            screenBlockReason = error instanceof Error ? error.message : String(error);
+        }
+    });
+
+    test.beforeEach(async () => {
+        if (screenBlockReason) {
+            await failBlockedFeature(`Social Attribute Master is not available or could not be opened on the QA server.\n\n${screenBlockReason}`);
+        }
     });
 
 
@@ -544,17 +557,17 @@ test(
 // =====================================================
 
 test(
-    'TC27 - Search HAS_SOLA',
+    'TC27 - Search STP',
     async () => {
 
-        await socialAttributePage.searchHasSolar();
+        await socialAttributePage.searchSTP();
 
         await expect(
             socialAttributePage.searchInput
-        ).toHaveValue('HAS_SOLA');
+        ).toHaveValue('STP');
 
         console.log(
-            'TC27 Passed - HAS_SOLA searched'
+            'TC27 Passed - STP searched'
         );
     }
 );
@@ -647,7 +660,7 @@ test(
 
         await expect(
             socialAttributePage.searchInput
-        ).toHaveValue('HAS_EV_CHARGING');
+        ).toHaveValue('EV_CHARGING');
 
         console.log(
             'TC32 Passed - EV Charging searched'

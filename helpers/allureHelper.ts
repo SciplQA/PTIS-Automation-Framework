@@ -25,6 +25,26 @@ export async function addAllureMetadata(metadata: AllureMetadata): Promise<void>
 }
 
 /**
+ * Mark a test as a development/environment blocker when its required screen
+ * or control cannot be reached. This keeps blocked functionality visible in
+ * Allure's severity view instead of turning it into a misleading pass/skip.
+ */
+export async function markBlockedFeature(reason: string): Promise<void> {
+  await Promise.all([
+    allure.severity('blocker'),
+    allure.tags('blocked', 'development-blocker'),
+    allure.description(`**Blocked before execution**\n\n${reason}`),
+    allure.attachment('blocker-diagnostic', reason, 'text/plain'),
+  ]);
+}
+
+/** Mark the current test as blocked and fail it with a report-friendly error. */
+export async function failBlockedFeature(reason: string): Promise<never> {
+  await markBlockedFeature(reason);
+  throw new Error(`BLOCKER: ${reason}`);
+}
+
+/**
  * Compatibility helper for imported suites that recorded their own video.
  * The shared internal session normally relies on Playwright's configured
  * failure artifacts, but attaches a video here when the page has one.

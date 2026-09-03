@@ -6,6 +6,15 @@ import path from 'path';
 // Read environment variables from file.
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
+// A single, environment-controlled pacing delay for every Playwright action.
+// `slowMo` is applied by the browser itself, so page objects and test files do
+// not need individual waitForTimeout calls. Set PLAYWRIGHT_SLOW_MO=0 when the
+// delay is not needed (for example in CI).
+const configuredSlowMo = Number.parseInt(process.env.PLAYWRIGHT_SLOW_MO ?? '0', 10);
+export const ACTION_SLOW_MO = Number.isFinite(configuredSlowMo) && configuredSlowMo >= 0
+  ? configuredSlowMo
+  : 0;
+
 /**
  * Path where the authentication state will be stored.
  */
@@ -82,6 +91,9 @@ export default defineConfig({
       testMatch: /.*\.setup\.ts/,
       use: {
         browserName: 'chromium',
+        launchOptions: {
+          slowMo: ACTION_SLOW_MO,
+        },
         // To maximize a headed Chromium window later, uncomment these lines:
         // viewport: null,
         // launchOptions: { args: ['--start-maximized'] },
@@ -97,6 +109,9 @@ export default defineConfig({
       name: 'chromium',
       use: {
         browserName: 'chromium',
+        launchOptions: {
+          slowMo: ACTION_SLOW_MO,
+        },
         // Use the authenticated state saved by the setup project
         storageState: STORAGE_STATE,
         // To maximize a headed Chromium window later, uncomment these lines:

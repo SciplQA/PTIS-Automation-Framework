@@ -2,15 +2,18 @@ import { Page } from '@playwright/test';
 import { internalTest as test, expect } from '../../../fixtures/internalSessionFixtures';
 import { TaxZonePage } from '../../../pages/property-tax/Masters/TaxZonePage';
 import { generateUniqueNumber, generateUniqueUppercase } from './randomData.js';
+import { failBlockedFeature } from '../../../helpers/allureHelper';
 
 
-test.describe.configure({ mode: 'serial' });
+// Keep source order on the single worker without serial-mode skip cascading.
+test.describe.configure({ mode: 'default' });
 test.describe('Property Tax - Tax Zone Master', () => {
 
     let page: Page;
     let taxZonePage: TaxZonePage;
     let createdZoneNo: string;
     let deleteZoneNo: string;
+    let screenBlockReason: string | undefined;
 
 
     // =====================================================
@@ -20,8 +23,18 @@ test.describe('Property Tax - Tax Zone Master', () => {
     test.beforeAll(async ({ internalSession }) => {
         page = internalSession.page;
         taxZonePage = internalSession.taxZonePage;
-        await taxZonePage.navigateFromPropertyTaxModule();
-        await taxZonePage.expectLoaded();
+        try {
+            await taxZonePage.navigateFromPropertyTaxModule();
+            await taxZonePage.expectLoaded();
+        } catch (error) {
+            screenBlockReason = error instanceof Error ? error.message : String(error);
+        }
+    });
+
+    test.beforeEach(async () => {
+        if (screenBlockReason) {
+            await failBlockedFeature(`Tax Zone Master is not available or could not be opened on the QA server.\n\n${screenBlockReason}`);
+        }
     });
 
 

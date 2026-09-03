@@ -342,10 +342,11 @@ this.deleteConfirmButton = page.getByRole('dialog').getByRole('button', {
     // ==========================================
 
     async clickPage1() {
-
-        const page1Button = this.page.locator(
-            'button:has(span:text("1"))'
-        );
+        // A text locator for "1" also matches page 10. Use the exact
+        // accessible pagination name so strict mode selects one button.
+        const page1Button = this.page
+            .getByRole('button', { name: 'Go to page 1', exact: true })
+            .first();
 
         await page1Button.waitFor({
             state: 'visible',
@@ -367,10 +368,9 @@ this.deleteConfirmButton = page.getByRole('dialog').getByRole('button', {
     // ==========================================
 
     async clickPage2() {
-
-        const page2Button = this.page.locator(
-            'button:has(span:text("2"))'
-        );
+        const page2Button = this.page
+            .getByRole('button', { name: 'Go to page 2', exact: true })
+            .first();
 
         await page2Button.waitFor({
             state: 'visible',

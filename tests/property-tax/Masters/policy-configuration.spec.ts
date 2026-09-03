@@ -1,17 +1,30 @@
 import { internalTest as test, expect } from '../../../fixtures/internalSessionFixtures';
 import { Page } from '@playwright/test';
 import { PolicyConfigurationMasterPage } from '../../../pages/property-tax/Masters/Policy-configuration-master';
+import { failBlockedFeature } from '../../../helpers/allureHelper';
 
-test.describe.configure({ mode: 'serial' });
+// Keep source order on the single worker without serial-mode skip cascading.
+test.describe.configure({ mode: 'default' });
 test.describe('Property Tax - Policy Configuration Master', () => {
   let page: Page;
   let policyConfigurationMasterPage: PolicyConfigurationMasterPage;
+  let screenBlockReason: string | undefined;
 
   test.beforeAll(async ({ internalSession }) => {
     page = internalSession.page;
     policyConfigurationMasterPage = internalSession.policyConfigurationMasterPage;
-    await policyConfigurationMasterPage.navigateFromPropertyTaxModule();
-    await policyConfigurationMasterPage.expectLoaded();
+    try {
+      await policyConfigurationMasterPage.navigateFromPropertyTaxModule();
+      await policyConfigurationMasterPage.expectLoaded();
+    } catch (error) {
+      screenBlockReason = error instanceof Error ? error.message : String(error);
+    }
+  });
+
+  test.beforeEach(async () => {
+    if (screenBlockReason) {
+      await failBlockedFeature(`Policy Configuration Master is not available or could not be opened on the QA server.\n\n${screenBlockReason}`);
+    }
   });
 
   test('TC01 - Policy Configuration page load', async () => {
@@ -153,8 +166,6 @@ test.describe('Property Tax - Policy Configuration Master', () => {
   });
 
   test.afterAll(async () => {
-    if (page && !page.isClosed()) {
-      await policyConfigurationMasterPage.closeEditDrawer();
-    }
+    await policyConfigurationMasterPage?.closeEditDrawer().catch(() => undefined);
   });
 });

@@ -1,13 +1,16 @@
 import { Page } from '@playwright/test';
 import { internalTest as test, expect } from '../../../fixtures/internalSessionFixtures';
 import { TypeOfUseMasterPage } from '../../../pages/property-tax/Masters/TypeOfUseMasterPage';
+import { failBlockedFeature } from '../../../helpers/allureHelper';
 
-test.describe.configure({ mode: 'serial' });
+// Keep source order on the single worker without serial-mode skip cascading.
+test.describe.configure({ mode: 'default' });
 test.describe('Property Tax - Type of Use Master', () => {
   test.setTimeout(120000);
 
   let page: Page;
   let typeOfUsePage: TypeOfUseMasterPage;
+  let screenBlockReason: string | undefined;
   const suffix = `${Date.now()}`.slice(-6);
   const groupId = `R${suffix}`;
   const groupName = `residential${suffix}`;
@@ -19,8 +22,18 @@ test.describe('Property Tax - Type of Use Master', () => {
   test.beforeAll(async ({ internalSession }) => {
     page = internalSession.page;
     typeOfUsePage = new TypeOfUseMasterPage(page);
-    await typeOfUsePage.navigateFromPropertyTaxModule();
-    await typeOfUsePage.expectLoaded();
+    try {
+      await typeOfUsePage.navigateFromPropertyTaxModule();
+      await typeOfUsePage.expectLoaded();
+    } catch (error) {
+      screenBlockReason = error instanceof Error ? error.message : String(error);
+    }
+  });
+
+  test.beforeEach(async () => {
+    if (screenBlockReason) {
+      await failBlockedFeature(`Type of Use Master is not available or could not be opened on the QA server.\n\n${screenBlockReason}`);
+    }
   });
 
   test('TC01 - validates empty Add Use Group form', async () => {

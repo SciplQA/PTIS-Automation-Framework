@@ -1065,22 +1065,22 @@ async selectRowsPerPageFive() {
 
 
 // =====================================================
-// SEARCH HAS_SOLA
+// SEARCH STP
 // =====================================================
 
-async searchHasSolar() {
+async searchSTP() {
 
     await this.searchInput.waitFor({
         state: 'visible',
         timeout: 15000
     });
 
-    await this.searchInput.fill('HAS_SOLA');
+    await this.searchInput.fill('STP');
 
     //await this.page.waitForTimeout(2000);
 
     console.log(
-        'HAS_SOLA searched successfully'
+        'STP searched successfully'
     );
 }
 
@@ -1204,6 +1204,16 @@ async updateSocialAttribute() {
 
     await updateButton.click();
 
+    // The application keeps the edit dialog mounted after a successful
+    // update. Close it before the next test interacts with list filters;
+    // otherwise a similarly named combobox inside the dialog can be selected.
+    const dialog = this.page.getByRole('dialog').last();
+    if (await dialog.isVisible().catch(() => false)) {
+        const closeButton = dialog.getByRole('button').first();
+        await closeButton.click({ timeout: 3000 }).catch(() => undefined);
+        await expect(dialog).toBeHidden({ timeout: 5000 }).catch(() => undefined);
+    }
+
     ////await this.page.waitForTimeout(3000);
 
     console.log(
@@ -1224,12 +1234,12 @@ async searchEvCharging() {
         timeout: 15000
     });
 
-    await this.searchInput.fill('HAS_EV_CHARGING');
+    await this.searchInput.fill('EV_CHARGING');
 
     //await this.page.waitForTimeout(2000);
 
     console.log(
-        'HAS_EV_CHARGING searched successfully'
+        'EV_CHARGING searched successfully'
     );
 }
 
@@ -1243,7 +1253,7 @@ async clickEvChargingEdit() {
 
     const editButton = this.page
         .getByRole('row', {
-            name: /HAS_EV_CHARGING EV Charging/
+            name: /EV_CHARGING EV Charging/
         })
         .getByLabel('Edit');
 
@@ -1465,6 +1475,15 @@ async selectBitOption() {
 // =====================================================
 
 async selectChildAttribute() {
+
+    // A previous edit test may leave its dialog mounted. Close that overlay
+    // first; otherwise the root-attribute combobox in the dialog is selected
+    // instead of the list's Attribute filter.
+    const openDialog = this.page.getByRole('dialog').last();
+    if (await openDialog.isVisible().catch(() => false)) {
+        await openDialog.getByRole('button').first().click({ timeout: 3000 }).catch(() => undefined);
+        await expect(openDialog).toBeHidden({ timeout: 5000 }).catch(() => undefined);
+    }
 
     // The language switch can leave this control in English while the
     // translated label is still being applied. Prefer the stable English

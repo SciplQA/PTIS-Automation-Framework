@@ -6,22 +6,35 @@ import { Page } from '@playwright/test';
 import { internalTest as test, expect } from '../../../fixtures/internalSessionFixtures';
 import { addAllureMetadata, attachVideoOnCompletion } from '../../../helpers/allureHelper';
 import { TaxZoningPage } from '../../../pages/property-tax/Masters/TaxZoningPage';
+import { failBlockedFeature } from '../../../helpers/allureHelper';
 import fs from 'fs';
 import path from 'path';
 
 test.describe('Property Tax > Masters > Tax Zoning @masters @zoning', () => {
   // Run tests in serial mode on a shared page context
-  test.describe.configure({ mode: 'serial' });
+  // Keep source order on the single worker without serial-mode skip cascading.
+  test.describe.configure({ mode: 'default' });
   test.setTimeout(120000);
 
   let page: Page;
   let zoningPage: TaxZoningPage;
+  let screenBlockReason: string | undefined;
 
   test.beforeAll(async ({ internalSession }) => {
     page = internalSession.page;
     zoningPage = internalSession.taxZoningPage;
-    await zoningPage.navigateFromPropertyTaxModule();
-    await zoningPage.verifyPageLoaded();
+    try {
+      await zoningPage.navigateFromPropertyTaxModule();
+      await zoningPage.verifyPageLoaded();
+    } catch (error) {
+      screenBlockReason = error instanceof Error ? error.message : String(error);
+    }
+  });
+
+  test.beforeEach(async () => {
+    if (screenBlockReason) {
+      await failBlockedFeature(`Tax Zoning Master is not available or could not be opened on the QA server.\n\n${screenBlockReason}`);
+    }
   });
 
   // =========================================================================

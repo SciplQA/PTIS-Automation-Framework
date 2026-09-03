@@ -2,6 +2,7 @@ import { Page } from '@playwright/test';
 import * as allure from 'allure-js-commons';
 import { internalTest as test, expect } from '../../../fixtures/internalSessionFixtures';
 import { DepreciationMasterPage, DepreciationRange } from '../../../pages/property-tax/Masters/DepreciationMasterMasterPage';
+import { failBlockedFeature } from '../../../helpers/allureHelper';
 
 // Keep tests independent so one failed assertion is reported while later
 // cases still execute. The worker-scoped page remains sequential because the
@@ -16,18 +17,29 @@ test.describe('Property Tax - Depreciation Master', () => {
   let existingRange: DepreciationRange;
   let constructionType = '';
   let rangeCreated = false;
+  let screenBlockReason: string | undefined;
 
   test.beforeAll(async ({ internalSession }) => {
     page = internalSession.page;
     depreciation = internalSession.depreciationMasterPage;
-    await depreciation.navigateFromPropertyTaxModule();
-    await depreciation.expectLoaded();
-    const ranges = await depreciation.getRanges();
-    existingRange = ranges[0];
-    testRange = await depreciation.getNextContiguousRange();
-    const firstRate = depreciation.rateInputs.first();
-    const aria = await firstRate.getAttribute('aria-label');
-    constructionType = aria?.split(' for ')[0] || '';
+    try {
+      await depreciation.navigateFromPropertyTaxModule();
+      await depreciation.expectLoaded();
+      const ranges = await depreciation.getRanges();
+      existingRange = ranges[0];
+      testRange = await depreciation.getNextContiguousRange();
+      const firstRate = depreciation.rateInputs.first();
+      const aria = await firstRate.getAttribute('aria-label');
+      constructionType = aria?.split(' for ')[0] || '';
+    } catch (error) {
+      screenBlockReason = error instanceof Error ? error.message : String(error);
+    }
+  });
+
+  test.beforeEach(async () => {
+    if (screenBlockReason) {
+      await failBlockedFeature(`Depreciation Master is not available or could not be opened on the QA server.\n\n${screenBlockReason}`);
+    }
   });
 
   test.afterEach(async ({ internalSession }, testInfo) => {
@@ -144,11 +156,11 @@ test.describe('Property Tax - Depreciation Master', () => {
       await expect(depreciation.pageHeading).toBeVisible();
       await expect(depreciation.addRangeButton).toBeVisible();
     } finally {
-      // Restore the default locale without reopening a translated menu. This
-      // cleanup path must not consume the test timeout if the menu animation
-      // is still settling.
-      await page.evaluate(() => localStorage.setItem('NEXT_LOCALE', 'en')).catch(() => undefined);
-      await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => undefined);
+      // Restore English through the same supported UI flow. Changing only
+      // localStorage and reloading can leave the route in /mr, so the next
+      // validation test receives Marathi text and falsely fails.
+      await depreciation.selectLanguage('English').catch(() => undefined);
+      await page.waitForURL(/\/en\//, { timeout: 10000 }).catch(() => undefined);
       await depreciation.expectLoaded().catch(() => undefined);
     }
   });

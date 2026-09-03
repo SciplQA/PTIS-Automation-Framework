@@ -70,23 +70,16 @@ export class ConstructionTypeMasterPage extends PropertyTaxBasePage {
 
 	async search(query: string): Promise<void> {
 		await this.searchInput.waitFor({ state: 'visible', timeout: 10000 });
-		await this.searchInput.click();
-		if (query) {
-			for (let attempt = 0; attempt < 3; attempt += 1) {
-				await this.searchInput.fill(query);
-				if (await this.searchInput.inputValue() !== query) continue;
-				try {
-					await this.getRowByCode(query).waitFor({ state: 'visible', timeout: 5000 });
-					return;
-				} catch {
-					// Retry if the table refresh overwrote the controlled input.
-				}
-			}
-			await expect(this.searchInput).toHaveValue(query, { timeout: 5000 });
-			await this.getRowByCode(query).waitFor({ state: 'visible', timeout: 10000 });
-		} else {
-			await this.page.waitForLoadState('networkidle').catch(() => undefined);
+		// Searching is also used after deletion, where a matching row is
+		// expected to be absent. Wait for the controlled input to retain the
+		// requested value, then let the calling test assert presence/absence of
+		// the result. Requiring a visible row here incorrectly fails valid
+		// delete tests before their negative assertion can run.
+		for (let attempt = 0; attempt < 3; attempt += 1) {
+			await this.searchInput.fill(query);
+			if (await this.searchInput.inputValue() === query) break;
 		}
+		await expect(this.searchInput).toHaveValue(query, { timeout: 5000 });
 	}
 
 	async clearSearch(): Promise<void> {
