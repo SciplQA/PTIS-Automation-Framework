@@ -306,7 +306,13 @@ export const internalTest = baseTest.extend<InternalSessionTestFixtures, Interna
       }).catch(() => undefined);
     }
 
-    const propertyTaxCard = page.getByRole('link', { name: 'Navigate to Property Tax' });
+    // The dashboard renders desktop and responsive copies of this card. A
+    // role locator can resolve the hidden copy first, which makes the later
+    // click fail even though the dashboard is loaded. Restrict it to the
+    // currently visible card.
+    const propertyTaxCard = page
+      .locator('a[aria-label="Navigate to Property Tax"]:visible')
+      .first();
 
     const loginAndSaveState = async (): Promise<void> => {
       // Do not use BasePage.navigateTo/login here: its network-idle wait is

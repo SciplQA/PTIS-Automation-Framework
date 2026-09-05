@@ -27,11 +27,10 @@ export class BasePage {
    * Helper to wait for the page to be fully loaded and all loaders to disappear
    */
   async waitForPageReady(): Promise<void> {
-    await this.page.waitForLoadState('load');
+    // DOM readiness plus the application's loader is deterministic here.
+    // networkidle is slow for the PTIS shell because analytics/polling
+    // requests can remain open after the page is usable.
     await this.page.waitForLoadState('domcontentloaded');
-    await this.page.waitForLoadState('networkidle').catch(() => {
-      // Ignore networkidle timeouts as some analytics or long-polling resources might keep it active
-    });
     await this.waitForLoaderToDisappear();
   }
 

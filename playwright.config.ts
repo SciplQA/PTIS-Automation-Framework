@@ -95,8 +95,8 @@ export default defineConfig({
           slowMo: ACTION_SLOW_MO,
         },
         // To maximize a headed Chromium window later, uncomment these lines:
-        // viewport: null,
-        // launchOptions: { args: ['--start-maximized'] },
+        viewport: null,
+        launchOptions: { args: ['--start-maximized'] },
       },
     },
 
@@ -115,8 +115,8 @@ export default defineConfig({
         // Use the authenticated state saved by the setup project
         storageState: STORAGE_STATE,
         // To maximize a headed Chromium window later, uncomment these lines:
-        // viewport: null,
-        // launchOptions: { args: ['--start-maximized'] },
+        viewport: null,
+        launchOptions: { args: ['--start-maximized'] },
       },
     },
 

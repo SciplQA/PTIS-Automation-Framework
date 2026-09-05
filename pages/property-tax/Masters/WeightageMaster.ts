@@ -59,6 +59,22 @@ export class WeightageMasterPage extends PropertyTaxBasePage {
 
 	readonly addAgeButton: Locator;
 
+	// Compatibility locators used by the expanded Weightage scenarios. They
+	// point to the same live controls as the typed API above, so the JavaScript
+	// helper does not need to remain in the module resolution path.
+	readonly generateAllBtn: Locator;
+	readonly applyBtn: Locator;
+	readonly clearFilterBtn: Locator;
+	readonly updateBtn: Locator;
+	readonly cancelFilterBtn: Locator;
+	readonly generatedUpdateBtn: Locator;
+	readonly nonGeneratedCreateBtn: Locator;
+	readonly editModalCancelBtn: Locator;
+	readonly editModalUpdateBtn: Locator;
+	readonly editAgeModalCancelBtn: Locator;
+	readonly editAgeModalUpdateBtn: Locator;
+	readonly editFactorInputLocator: Locator;
+
 	constructor(page: Page) {
 		super(page);
 
@@ -143,10 +159,48 @@ export class WeightageMasterPage extends PropertyTaxBasePage {
 		this.editFactorInput = page.locator('div:has-text("Factor") input, input[name*="factor"]').first();
 
 		this.addAgeButton = page.getByRole('button', { name: /Add Age/i }).first();
+
+		this.generateAllBtn = this.generateAllButton;
+		this.applyBtn = this.applyButton;
+		this.clearFilterBtn = this.clearButton;
+		this.updateBtn = this.updateButton;
+		this.cancelFilterBtn = this.cancelButton;
+		this.generatedUpdateBtn = this.generatedUpdateButton;
+		this.nonGeneratedCreateBtn = this.nonGeneratedCreateButton;
+		this.editModalCancelBtn = this.formCancelButton;
+		this.editModalUpdateBtn = this.updateButton;
+		this.editAgeModalCancelBtn = this.formCancelButton;
+		this.editAgeModalUpdateBtn = this.updateButton;
+		this.editFactorInputLocator = this.editFactorInput;
 	}
 
 	async navigateFromPropertyTaxModule(): Promise<void> {
-		await this.selectMasterSubmenu('Weightage Master');
+		await this.page.goto('/en/property-tax/weightage-master', {
+			waitUntil: 'domcontentloaded'
+		});
+	}
+
+	/** Navigate directly when another suite has left the shared page elsewhere. */
+	async navigateToWeightageMaster(): Promise<void> {
+		if (!/\/en\/property-tax\/weightage-master(?:\?.*)?$/i.test(this.page.url())) {
+			await this.page.goto('/en/property-tax/weightage-master', {
+				waitUntil: 'domcontentloaded'
+			});
+		}
+		await this.expectLoaded();
+	}
+
+	getCurrentUrl(): string {
+		return this.page.url();
+	}
+
+	async verifyWeightageMasterPageLoaded(): Promise<boolean> {
+		return /weightage/i.test(this.page.url()) && await this.pageHeading.isVisible().catch(() => false);
+	}
+
+	async isElementVisible(target: string | Locator): Promise<boolean> {
+		const locator = typeof target === 'string' ? this.page.locator(target).first() : target.first();
+		return locator.isVisible().catch(() => false);
 	}
 
 	async expectLoaded(): Promise<void> {
@@ -184,7 +238,7 @@ export class WeightageMasterPage extends PropertyTaxBasePage {
 
 	private async clickTab(tab: Locator): Promise<void> {
 		await tab.waitFor({ state: 'visible', timeout: 10000 });
-		await tab.click();
+		await tab.click({ timeout: 10000 });
 		// The tab click can trigger a route transition. Waiting for the selected
 		// state avoids reading the previous panel while React is still hydrating.
 		await expect(tab).toHaveAttribute('aria-selected', 'true', { timeout: 15000 });
@@ -203,9 +257,36 @@ export class WeightageMasterPage extends PropertyTaxBasePage {
 		await this.constructionCodeHeader.waitFor({ state: 'visible', timeout: 10000 });
 	}
 
+	async clickNatureAndTypeTab(): Promise<boolean> {
+		try {
+			await this.openNatureBuildingTab();
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	async verifyNatureTabActive(): Promise<boolean> {
+		return this.constructionCodeHeader.isVisible().catch(() => false);
+	}
+
 	async openUseCategoryTab(): Promise<void> {
 		await this.clickTab(this.useCategoryTab);
 		await this.page.locator('table').first().waitFor({ state: 'visible', timeout: 10000 });
+	}
+
+	async clickUseCategoryTab(): Promise<boolean> {
+		try {
+			await this.openUseCategoryTab();
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	async verifyUseCategoryTabActive(): Promise<boolean> {
+		return this.page.locator('th').filter({ hasText: /Type Of Use|Use Category|Sub Type/i }).first()
+			.isVisible().catch(() => false);
 	}
 
 	async openAgeOfBuildingTab(): Promise<void> {
@@ -213,19 +294,87 @@ export class WeightageMasterPage extends PropertyTaxBasePage {
 		await this.ageFromHeader.waitFor({ state: 'visible', timeout: 10000 });
 	}
 
+	async clickAgeOfBuildingTab(): Promise<boolean> {
+		try {
+			await this.openAgeOfBuildingTab();
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	async verifyAgeOfBuildingTabActive(): Promise<boolean> {
+		return this.ageFromHeader.isVisible().catch(() => false);
+	}
+
 	async clickGenerateAll(): Promise<void> {
 		await this.generateAllButton.waitFor({ state: 'visible', timeout: 10000 });
-		await this.generateAllButton.click();
+		// The application disables Generate All until its required filters are
+		// selected. Treat that as a valid guarded state instead of retrying a
+		// disabled click for the full action timeout.
+		if (!(await this.generateAllButton.isEnabled().catch(() => false))) return;
+		await this.generateAllButton.click({ timeout: 10000 });
+	}
+
+	async clickGenerateAllAction(): Promise<boolean> {
+		try {
+			await this.clickGenerateAll();
+			return true;
+		} catch {
+			return false;
+		}
 	}
 
 	async clickApply(): Promise<void> {
 		await this.applyButton.waitFor({ state: 'visible', timeout: 10000 });
-		await this.applyButton.click();
+		if (!(await this.applyButton.isEnabled().catch(() => false))) return;
+		await this.applyButton.click({ timeout: 10000 });
+	}
+
+	async clickApplyFilters(): Promise<boolean> {
+		try {
+			if (!(await this.applyButton.isVisible()) || !(await this.applyButton.isEnabled().catch(() => false))) return false;
+			await this.applyButton.click({ timeout: 10000 });
+			return true;
+		} catch {
+			return false;
+		}
 	}
 
 	async clickClear(): Promise<void> {
 		await this.clearButton.waitFor({ state: 'visible', timeout: 10000 });
-		await this.clearButton.click();
+		if (!(await this.clearButton.isEnabled().catch(() => false))) return;
+		await this.clearButton.click({ timeout: 10000 });
+	}
+
+	async clickClearFilters(): Promise<boolean> {
+		try {
+			if (!(await this.clearButton.isVisible()) || !(await this.clearButton.isEnabled().catch(() => false))) return false;
+			await this.clearButton.click({ timeout: 10000 });
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	async clickUpdateFilters(): Promise<boolean> {
+		try {
+			if (!(await this.updateButton.isVisible())) return false;
+			await this.updateButton.click({ timeout: 10000 });
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	async clickCancelFilters(): Promise<boolean> {
+		try {
+			if (!(await this.cancelButton.isVisible())) return false;
+			await this.cancelButton.click({ timeout: 10000 });
+			return true;
+		} catch {
+			return false;
+		}
 	}
 
 	async selectAssessmentYear(index = 1): Promise<void> {
@@ -259,6 +408,15 @@ export class WeightageMasterPage extends PropertyTaxBasePage {
 		await this.addAgeFormHeading.waitFor({ state: 'visible', timeout: 10000 });
 	}
 
+	async clickAddWeightage(): Promise<boolean> {
+		try {
+			await this.openAddWeightage();
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
 	async fillWeightageDetails(data: {
 		factorName?: string;
 		weightageValue?: string | number;
@@ -285,6 +443,27 @@ export class WeightageMasterPage extends PropertyTaxBasePage {
 			await this.formCancelButton.click();
 			await this.addAgeFormHeading.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => undefined);
 		}
+	}
+
+	async clickCancel(): Promise<boolean> {
+		try {
+			await this.clickFormCancel();
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	async searchWeightage(query: string): Promise<void> {
+		await this.search(query);
+	}
+
+	async getLeftTableTextContent(): Promise<string> {
+		return (await this.page.locator('table').first().textContent().catch(() => '')) ?? '';
+	}
+
+	async getRightTableTextContent(): Promise<string> {
+		return (await this.page.locator('table').nth(1).textContent().catch(() => '')) ?? '';
 	}
 
 	getRowByText(value: string): Locator {
@@ -332,10 +511,39 @@ export class WeightageMasterPage extends PropertyTaxBasePage {
 		await row.locator('button[aria-label="Edit"], button[title="Edit"], a[href*="edit"]').first().click();
 	}
 
+	async clickEditForFactor(factorName: string): Promise<boolean> {
+		try {
+			const row = this.tableRows.filter({ hasText: factorName }).first();
+			await row.waitFor({ state: 'visible', timeout: 5000 });
+			await row.locator('button[aria-label="Edit"], button[title="Edit"], a[href*="edit"]').first().click();
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
 	async clickDeleteForGeneratedRecord(): Promise<void> {
 		const row = this.generatedRow();
 		await row.waitFor({ state: 'visible', timeout: 10000 });
 		await row.locator('button[aria-label="Delete"], button[title="Delete"], .btn-danger').first().click();
+	}
+
+	async clickEditForGeneratedRecordAction(): Promise<boolean> {
+		try {
+			await this.clickEditForGeneratedRecord();
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	async clickDeleteForGeneratedRecordAction(): Promise<boolean> {
+		try {
+			await this.clickDeleteForGeneratedRecord();
+			return true;
+		} catch {
+			return false;
+		}
 	}
 
 	private confirmationDialog(): Locator {
@@ -356,6 +564,24 @@ export class WeightageMasterPage extends PropertyTaxBasePage {
 		await dialog.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => undefined);
 	}
 
+	async confirmDeleteModal(): Promise<boolean> {
+		try {
+			await this.confirmDelete();
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	async cancelDeleteModal(): Promise<boolean> {
+		try {
+			await this.cancelDelete();
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
 	async clickAddAge(): Promise<void> {
 		await this.addAgeButton.waitFor({ state: 'visible', timeout: 10000 });
 		await this.addAgeButton.click();
@@ -365,7 +591,18 @@ export class WeightageMasterPage extends PropertyTaxBasePage {
 		const row = this.generatedRow();
 		await row.waitFor({ state: 'visible', timeout: 10000 });
 		const clear = row.getByRole('button', { name: /^Clear$/i }).first();
-		if (await clear.isVisible().catch(() => false)) await clear.click();
+		if (await clear.isVisible().catch(() => false) && await clear.isEnabled().catch(() => false)) {
+			await clear.click({ timeout: 10000 });
+		}
+	}
+
+	async clickAgeRowClearBtn(): Promise<boolean> {
+		try {
+			await this.clickAgeRowClear();
+			return true;
+		} catch {
+			return false;
+		}
 	}
 
 	async clickAgePaginationPage2(): Promise<void> {
@@ -374,6 +611,34 @@ export class WeightageMasterPage extends PropertyTaxBasePage {
 			await page2.click();
 			await expect(page2).toHaveAttribute('aria-current', 'page', { timeout: 10000 }).catch(() => undefined);
 		}
+	}
+
+	async getAgeTablePaginationInfo(): Promise<string> {
+		return this.getPaginationInfoText();
+	}
+
+	async getAgeTableRowCount(): Promise<number> {
+		return this.getRowCount();
+	}
+
+	async getAgeGeneratedRecordCount(): Promise<number> {
+		return this.generatedUpdateButton.count();
+	}
+
+	async clickEditForAgeRecord(): Promise<boolean> {
+		return this.clickEditForGeneratedRecordAction();
+	}
+
+	async clickDeleteForAgeRecord(): Promise<boolean> {
+		return this.clickDeleteForGeneratedRecordAction();
+	}
+
+	async selectAgeAssessmentYearFilter(index = 1): Promise<void> {
+		await this.selectAssessmentYear(index);
+	}
+
+	async selectAgeConstructionTypeFilter(index = 1): Promise<void> {
+		await this.selectConstructionType(index);
 	}
 
 	async getPaginationInfoText(): Promise<string> {

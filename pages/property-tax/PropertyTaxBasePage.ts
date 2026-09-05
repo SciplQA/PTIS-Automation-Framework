@@ -19,7 +19,10 @@ export class PropertyTaxBasePage extends BasePage {
    * Helper to expand the Masters section if not expanded, and click a submenu
    */
   async selectMasterSubmenu(submenuName: string): Promise<void> {
-    const sidebar = this.page.getByRole('complementary');
+    // The responsive shell keeps a hidden mobile aside in the DOM before the
+    // desktop aside. Target the last complementary region so headed runs do
+    // not try to hover an off-screen mobile sidebar.
+    const sidebar = this.page.getByRole('complementary').last();
     const mastersGroup = sidebar.getByRole('group').first();
     const mastersHeader = sidebar.getByText('Masters', { exact: true }).first();
     const mastersToggle = sidebar.locator('summary').filter({ hasText: 'Masters' }).first();

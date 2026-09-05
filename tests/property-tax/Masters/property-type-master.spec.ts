@@ -227,7 +227,7 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
 
             for (let i = 0; i < count; i++) {
                 const rowText = await propTypePage.tableRows.nth(i).innerText();
-                expect(rowText).toContain(partialKeyword);
+                await expect(rowText).toContain(partialKeyword);
             }
         });
 
@@ -304,7 +304,7 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
 
         await test.step('Apply search filter', async () => {
             await propTypePage.searchPropertyType('शाळा');
-            await page.waitForTimeout(400);
+            // searchPropertyType waits for the loading indicator to disappear.
         });
 
         await test.step('Clear search and verify row count is restored', async () => {
@@ -353,7 +353,7 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
         await test.step('Click Sort by Property Description button', async () => {
             await expect(propTypePage.sortPropertyDescriptionBtn).toBeVisible();
             await propTypePage.sortPropertyDescriptionBtn.click();
-            await page.waitForTimeout(600);
+            await expect(propTypePage.tableRows.first()).toBeVisible();
         });
 
         await test.step('Capture evidence screenshot of Description sort', async () => {
@@ -370,7 +370,7 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
         await test.step('Click Sort by Type button', async () => {
             await expect(propTypePage.sortTypeBtn).toBeVisible();
             await propTypePage.sortTypeBtn.click();
-            await page.waitForTimeout(600);
+            await expect(propTypePage.tableRows.first()).toBeVisible();
         });
 
         await test.step('Capture evidence screenshot of Type sort', async () => {
@@ -446,10 +446,9 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
 
         await test.step('Click Page 2 button directly', async () => {
             if (await page2Btn.isVisible()) {
+                const before = await propTypePage.paginationText.innerText().catch(() => '');
                 await page2Btn.click();
-                await page.waitForTimeout(600);
-                const text = await propTypePage.paginationText.innerText();
-                expect(text).toMatch(/Showing 11 to/i);
+                await expect.poll(() => propTypePage.paginationText.innerText().catch(() => '')).toMatch(/Showing 11 to/i);
             }
         });
 
@@ -460,8 +459,9 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
         await test.step('Return to page 1', async () => {
             const page1Btn = page.locator('button[aria-label="Go to page 1"]').first();
             if (await page1Btn.isVisible()) {
+                const before = await propTypePage.paginationText.innerText().catch(() => '');
                 await page1Btn.click();
-                await page.waitForTimeout(500);
+                await expect.poll(() => propTypePage.paginationText.innerText().catch(() => '')).not.toBe(before);
             }
         });
     });
@@ -475,13 +475,10 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
         await test.step('Select 20 rows per page', async () => {
             if (await propTypePage.rowsPerPageDropdown.isVisible()) {
                 await propTypePage.rowsPerPageDropdown.click();
-                await page.waitForTimeout(300);
                 const option20 = page.getByRole('option', { name: /^20$/i }).or(page.locator('[role="option"]:has-text("20")')).first();
                 if (await option20.isVisible()) {
                     await option20.click();
-                    await page.waitForTimeout(600);
-                    const count = await propTypePage.getTableRowCount();
-                    expect(count).toBeGreaterThan(10);
+                    await expect.poll(() => propTypePage.getTableRowCount()).toBeGreaterThan(10);
                 }
             }
         });
@@ -493,11 +490,9 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
         await test.step('Reset to 10 rows per page', async () => {
             if (await propTypePage.rowsPerPageDropdown.isVisible()) {
                 await propTypePage.rowsPerPageDropdown.click();
-                await page.waitForTimeout(300);
                 const option10 = page.getByRole('option', { name: /^10$/i }).or(page.locator('[role="option"]:has-text("10")')).first();
                 if (await option10.isVisible()) {
                     await option10.click();
-                    await page.waitForTimeout(500);
                 }
             }
         });
@@ -564,8 +559,16 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
         await test.step('Open Add drawer and submit blank form', async () => {
             await propTypePage.openAddDrawer();
             await propTypePage.submitAddForm();
-            await expect(propTypePage.descriptionError).toBeVisible();
-            await expect(propTypePage.descriptionError).toHaveText('Property description is required');
+            // The browser enforces this required input natively before the
+            // request is submitted; the application also keeps its mandatory
+            // banner visible. Validate both signals instead of requiring a
+            // server-side error element that is never rendered for blank HTML
+            // required fields.
+            await expect(propTypePage.mandatoryBanner).toBeVisible();
+            const validationMessage = await propTypePage.propertyDescriptionInput.evaluate(
+                (element: HTMLInputElement) => element.validationMessage,
+            );
+            expect(validationMessage).toMatch(/fill out|required/i);
         });
 
         await test.step('Capture evidence screenshot of Property Description validation error', async () => {
@@ -588,7 +591,6 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
             const catBtn = propTypePage.drawer.locator('button:has-text("Select category")').first();
             await expect(catBtn).toBeVisible({ timeout: 5000 });
             await catBtn.click();
-            await page.waitForTimeout(300);
             await page.keyboard.press('Escape');
         });
 
@@ -609,16 +611,15 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
 
         await test.step('Open Add drawer and inspect Type dropdown options', async () => {
             await propTypePage.openAddDrawer();
-            await propTypePage.categoryDropdown.click();
-            await page.waitForTimeout(300);
-            const catOption = page.getByRole('option', { name: 'निवासी' }).first();
-            if (await catOption.isVisible()) {
-                await catOption.click();
-                await page.waitForTimeout(300);
-            }
-
+            // The live form hydrates Type choices only after the required
+            // description has been touched; provide a disposable value for
+            // this controls-only scenario and close without saving.
+            await propTypePage.propertyDescriptionInput.fill('DropdownProbe');
+            // The live screen requires Category before Type options are
+            // populated. Use the page-object selection (with force-click and
+            // a fresh locator) so React's option re-render cannot detach it.
+            await propTypePage.fillPropertyTypeForm({ category: 'निवासी' });
             await propTypePage.typeDropdown.click();
-            await page.waitForTimeout(400);
 
             const rOption = page.getByRole('option', { name: /^R$/i }).first();
             await expect(rOption).toBeVisible({ timeout: 5000 });
@@ -712,10 +713,7 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
         await test.step('Open Add drawer and click "Select All"', async () => {
             await propTypePage.openAddDrawer();
             await propTypePage.typeOfUseSelectAllBtn.click();
-            await page.waitForTimeout(400);
-            const counterText = await propTypePage.typeOfUseSelectionCounter.innerText();
-            expect(counterText).not.toBe('0 selected');
-            expect(counterText).toMatch(/\d+ selected/);
+            await expect(propTypePage.typeOfUseSelectionCounter).toHaveText(/^(?!0 selected$)\d+ selected$/);
         });
 
         await test.step('Capture evidence screenshot of Select All state', async () => {
@@ -736,9 +734,7 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
         await test.step('Open Add drawer, click Select All then click Clear All', async () => {
             await propTypePage.openAddDrawer();
             await propTypePage.typeOfUseSelectAllBtn.click({ force: true });
-            await page.waitForTimeout(400);
             await propTypePage.typeOfUseClearAllBtn.click({ force: true });
-            await page.waitForTimeout(400);
             await expect(propTypePage.typeOfUseSelectionCounter).toHaveText('0 selected');
         });
 
@@ -761,7 +757,6 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
             await propTypePage.openAddDrawer();
             await propTypePage.typeOfUseSearchInput.fill('SPK');
             await propTypePage.typeOfUseSearchInput.dispatchEvent('input');
-            await page.waitForTimeout(400);
 
             const spkBadge = propTypePage.drawer.locator('span:has-text("SPK")').first();
             await expect(spkBadge).toBeVisible();
@@ -781,6 +776,7 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
     // =========================================================================
 
     const testUniqueCode = `AUTOPT${Date.now().toString().slice(-4)}`;
+    const description = testUniqueCode;
 
     test('TC33 - Verify creating a new Property Type with valid description, Type, Category, and assigned Type of Use codes', async ({ page }, testInfo) => {
         allure.epic('PTIS Masters');
@@ -789,9 +785,10 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
         allure.severity('blocker');
 
         await test.step(`Open Add drawer and fill details for "${testUniqueCode}"`, async () => {
+            console.log(`TC33 test data: inserting Property Description="${testUniqueCode}", Type="R", Category="निवासी"`);
             await propTypePage.openAddDrawer();
             await propTypePage.fillPropertyTypeForm({
-                description: testUniqueCode,
+                description: description,
                 category: 'निवासी',
                 type: 'R',
                 selectAllUse: true
@@ -814,18 +811,19 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
         allure.story('Verify Created Record in Table');
         allure.severity('critical');
 
-        await test.step(`Search for created record "${testUniqueCode}"`, async () => {
-            await propTypePage.searchPropertyType(testUniqueCode);
-            const row = propTypePage.getRowByText(testUniqueCode);
+        await test.step(`Search for created record "${description}"`, async () => {
+            console.log(`TC34 search data: query="${description}" (created by TC33)`);
+            await propTypePage.searchPropertyType(description);
+            const row = propTypePage.getRowByText(description);
             await expect(row).toBeVisible({ timeout: 10000 });
-            await expect(row).toContainText(testUniqueCode);
+            await expect(row).toContainText(description);
             await expect(row).toContainText('R');
             await expect(row).toContainText('निवासी');
             await expect(row).toContainText('Active');
         });
 
         await test.step('Capture evidence screenshot of created record in table', async () => {
-            const row = propTypePage.getRowByText(testUniqueCode);
+            const row = propTypePage.getRowByText(description);
             await propTypePage.captureEvidence(testInfo, 'TC34_Created_Record_Table_Proof.png', row);
         });
 
@@ -841,6 +839,7 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
         allure.severity('critical');
 
         await test.step(`Attempt to add another property type with description "${testUniqueCode}"`, async () => {
+            console.log(`TC35 duplicate-check data: attempting existing Description="${testUniqueCode}"`);
             await propTypePage.openAddDrawer();
             await propTypePage.fillPropertyTypeForm({
                 description: testUniqueCode,
@@ -848,7 +847,6 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
                 type: 'R'
             });
             await propTypePage.submitAddForm();
-            await page.waitForTimeout(1000);
         });
 
         await test.step('Capture evidence screenshot of duplicate check behavior', async () => {
@@ -867,6 +865,7 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
         allure.severity('critical');
 
         await test.step(`Search for "${testUniqueCode}" and click Edit button`, async () => {
+            console.log(`TC36 search data: query="${testUniqueCode}"`);
             await propTypePage.searchPropertyType(testUniqueCode);
             await propTypePage.openEditDrawer(testUniqueCode);
             await expect(propTypePage.drawer).toBeVisible();
@@ -894,6 +893,7 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
         allure.severity('blocker');
 
         await test.step(`Search for "${testUniqueCode}", edit description to "${modifiedUniqueCode}", and click Update`, async () => {
+            console.log(`TC37 search data: query="${testUniqueCode}"; updated Description="${modifiedUniqueCode}"`);
             await propTypePage.searchPropertyType(testUniqueCode);
             await propTypePage.openEditDrawer(testUniqueCode);
             await propTypePage.propertyDescriptionInput.fill(modifiedUniqueCode);
@@ -924,6 +924,7 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
         allure.severity('blocker');
 
         await test.step(`Search for "${modifiedUniqueCode}" and click Delete button`, async () => {
+            console.log(`TC38 search data: query="${modifiedUniqueCode}" (updated by TC37)`);
             await propTypePage.searchPropertyType(modifiedUniqueCode);
             await propTypePage.openDeleteDialog(modifiedUniqueCode);
             await expect(propTypePage.deleteDialog).toBeVisible();
@@ -943,7 +944,6 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
         await test.step('Open delete dialog again and confirm deletion', async () => {
             await propTypePage.openDeleteDialog(modifiedUniqueCode);
             await propTypePage.confirmDelete();
-            await page.waitForTimeout(1500);
         });
 
         await test.step(`Verify record "${modifiedUniqueCode}" is deleted and no longer visible`, async () => {
@@ -1031,7 +1031,6 @@ test.describe('PTIS - Property Type Master Suite (TC01 - TC40)', () => {
         await test.step(`5. Delete record "${e2eUpdatedCode}" and confirm removal`, async () => {
             await propTypePage.openDeleteDialog(e2eUpdatedCode);
             await propTypePage.confirmDelete();
-            await page.waitForTimeout(1000);
             await propTypePage.searchPropertyType(e2eUpdatedCode);
             const deletedRow = propTypePage.getRowByText(e2eUpdatedCode);
             await expect(deletedRow).not.toBeVisible({ timeout: 5000 });

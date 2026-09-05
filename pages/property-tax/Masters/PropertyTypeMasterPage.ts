@@ -136,12 +136,24 @@ class PtisPropertyTypeMasterPage {
      * Navigate to Property Type Master screen
      */
     async navigateToPropertyTypeMaster() {
-        if (this.page.url().includes('/en/property-tax/propertytype') && await this.pageHeading.isVisible().catch(() => false)) {
+        const isPropertyTypeRoot = /\/en\/property-tax\/propertytype(?:\?[^#]*)?(?:#.*)?$/i.test(this.page.url());
+        if (isPropertyTypeRoot && await this.pageHeading.isVisible().catch(() => false)) {
             // This page object is reused by the worker-scoped session. A
             // previous pagination test may have left the table on page 2 or
             // later, so every test must start from the deterministic first
             // page even when navigation is not required.
             await this.resetToFirstPage();
+            // Search is also stateful in the SPA. A preceding test can leave
+            // its query in the URL and the input even though the route did
+            // not change, so clear it before the next scenario starts.
+            if ((await this.searchInput.inputValue().catch(() => '')) !== '') {
+                await this.clearSearch();
+            }
+            // Recover a drawer left open by a failed test before the next
+            // scenario interacts with the table or Add button.
+            if (await this.drawer.isVisible().catch(() => false)) {
+                await this.closeDrawer().catch(() => undefined);
+            }
             return;
         }
         await this.page.goto('/en/property-tax/propertytype', { waitUntil: 'domcontentloaded' });
@@ -208,22 +220,52 @@ class PtisPropertyTypeMasterPage {
      * Perform Search
      */
     async searchPropertyType(keyword: string): Promise<void> {
+        await this.tableRows.first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => undefined);
         await this.searchInput.fill(keyword);
         await this.searchInput.dispatchEvent('input');
         await this.searchInput.dispatchEvent('change');
-        await this.page.waitForTimeout(1000);
+        await this.searchInput.press('Enter').catch(() => undefined);
         await this.table.locator('text=Loading...').waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
+        const query = keyword.trim().toLocaleLowerCase();
+        if (query) {
+            // The screen debounces filtering and does not always render a
+            // loading label. Poll the rendered result instead of sleeping.
+            await expect.poll(async () => {
+                const rows = await this.tableRows.allInnerTexts();
+                const normalizedRows = rows.map(row => row.toLocaleLowerCase());
+                const noDataRow = normalizedRows.some(row => /no records|no data available/i.test(row));
+                // Do not return as soon as one matching row appears while the
+                // debounced filter is still rendering the remaining rows.
+                return noDataRow || (rows.length > 0 && normalizedRows.every(row => row.includes(query)));
+            }, { timeout: 5000, intervals: [100, 250, 500] }).toBe(true);
+        }
     }
 
     /**
      * Clear Search
      */
     async clearSearch() {
+        const previousRows = await this.getTableRowCount();
+        const previousSummary = await this.paginationText.innerText().catch(() => '');
         await this.searchInput.fill('');
         await this.searchInput.dispatchEvent('input');
         await this.searchInput.dispatchEvent('change');
-        await this.page.waitForTimeout(1000);
         await this.table.locator('text=Loading...').waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
+
+        // The screen debounces the input and then updates both the table and
+        // query-string asynchronously. Waiting only for the input value made
+        // batch runs count the old filtered rows. Poll the rendered state
+        // instead of using a fixed sleep.
+        await expect.poll(async () => {
+            const rows = await this.getTableRowCount();
+            const summary = await this.paginationText.innerText().catch(() => '');
+            const hasQuery = /[?&]q=[^&#]*/i.test(this.page.url());
+            // Some searches legitimately return the same number of rows. In
+            // that case the URL/query transition is the reliable readiness
+            // signal; when the query remains, a changed table/summary is also
+            // accepted because the router may update later than the data.
+            return !hasQuery || rows !== previousRows || summary !== previousSummary;
+        }, { timeout: 10000, intervals: [100, 250, 500] }).toBe(true);
     }
 
     /**
@@ -232,7 +274,6 @@ class PtisPropertyTypeMasterPage {
     async openAddDrawer() {
         await this.addPropertyTypeBtn.click();
         await expect(this.drawer).toBeVisible({ timeout: 10000 });
-        await this.page.waitForTimeout(300);
     }
 
     /**
@@ -256,27 +297,38 @@ class PtisPropertyTypeMasterPage {
         }
 
         if (category) {
-            await this.categoryDropdown.click();
-            await this.page.waitForTimeout(200);
-            const catOption = this.page.getByRole('option', { name: new RegExp(category, 'i') }).first();
-            await catOption.click();
-            await this.page.waitForTimeout(200);
+            await this.selectDropdownOption(this.categoryDropdown, category);
         }
 
         if (type) {
-            await this.typeDropdown.click();
-            await this.page.waitForTimeout(200);
-            const typeOption = this.page.getByRole('option', { name: new RegExp(`^${type}$`, 'i') }).first();
-            await typeOption.click();
-            await this.page.waitForTimeout(200);
+            await this.selectDropdownOption(this.typeDropdown, `^${type}$`);
         }
 
         if (selectAllUse) {
             if (await this.typeOfUseSelectAllBtn.isVisible()) {
                 await this.typeOfUseSelectAllBtn.click();
-                await this.page.waitForTimeout(200);
             }
         }
+    }
+
+    /** Select a React combobox option with a fresh locator on each retry. */
+    private async selectDropdownOption(combo: Locator, optionPattern: string): Promise<void> {
+        const optionName = new RegExp(optionPattern, 'i');
+        let lastError: unknown;
+        for (let attempt = 0; attempt < 4; attempt += 1) {
+            try {
+                await combo.click({ force: true, timeout: 5000 });
+                const option = this.page.getByRole('option', { name: optionName }).first();
+                await option.waitFor({ state: 'visible', timeout: 5000 });
+                if (!(await option.evaluate(element => element.isConnected).catch(() => false))) continue;
+                await option.click({ force: true, timeout: 3000 });
+                return;
+            } catch (error) {
+                lastError = error;
+                await this.page.keyboard.press('Escape').catch(() => undefined);
+            }
+        }
+        throw lastError instanceof Error ? lastError : new Error(`Unable to select dropdown option ${optionPattern}`);
     }
 
     /**
@@ -284,7 +336,7 @@ class PtisPropertyTypeMasterPage {
      */
     async submitAddForm() {
         await this.drawerSaveBtn.click();
-        await this.page.waitForTimeout(1000);
+        await this.table.locator('text=Loading...').waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
     }
 
     /**
@@ -298,7 +350,6 @@ class PtisPropertyTypeMasterPage {
             }
             await expect(this.drawer).not.toBeVisible({ timeout: 10000 });
         });
-        await this.page.waitForTimeout(500);
     }
 
     /**
@@ -310,7 +361,6 @@ class PtisPropertyTypeMasterPage {
         const editBtn = row.locator('button[aria-label="Edit"], button:has(.lucide-pencil)').first();
         await editBtn.click();
         await expect(this.drawer).toBeVisible({ timeout: 10000 });
-        await this.page.waitForTimeout(300);
     }
 
     /**
@@ -322,7 +372,6 @@ class PtisPropertyTypeMasterPage {
         const deleteBtn = row.locator('button[aria-label="Delete"], button:has(.lucide-trash-2)').first();
         await deleteBtn.click();
         await expect(this.deleteDialog).toBeVisible({ timeout: 10000 });
-        await this.page.waitForTimeout(300);
     }
 
     /**
@@ -330,7 +379,7 @@ class PtisPropertyTypeMasterPage {
      */
     async confirmDelete() {
         await this.deleteConfirmBtn.click();
-        await this.page.waitForTimeout(1000);
+        await this.table.locator('text=Loading...').waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
     }
 
     /**
@@ -348,7 +397,6 @@ class PtisPropertyTypeMasterPage {
         const badge = this.tableRows.nth(rowIndex).locator('[title*="Click to view details"], span[title*="Click to view details"], button[title*="Click to view details"]').first();
         await badge.click();
         await expect(this.typeOfUseDetailsModal).toBeVisible({ timeout: 5000 });
-        await this.page.waitForTimeout(300);
     }
 
     /**
@@ -363,7 +411,6 @@ class PtisPropertyTypeMasterPage {
      * Capture evidence screenshot and attach to testInfo
      */
     async captureEvidence(testInfo: TestInfo, screenshotName: string, targetLocator: Locator | null = null): Promise<void> {
-        await this.page.waitForTimeout(200);
         const screenshotBuffer = targetLocator
             ? await targetLocator.screenshot()
             : await this.page.screenshot({ fullPage: false });

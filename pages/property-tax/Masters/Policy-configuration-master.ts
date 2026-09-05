@@ -35,7 +35,13 @@ export class PolicyConfigurationMasterPage extends PropertyTaxBasePage {
   }
 
   async navigateFromPropertyTaxModule(): Promise<void> {
-    await this.selectMasterSubmenu('Policy Configuration Master');
+    // This page is reached after other master suites have reused the same
+    // worker-scoped page. The responsive sidebar may still contain a stale or
+    // hidden copy at that point, so use the canonical route and let
+    // expectLoaded() verify the rendered controls.
+    await this.page.goto('/en/property-tax/policy-configuration', {
+      waitUntil: 'domcontentloaded'
+    });
   }
 
   async expectLoaded(): Promise<void> {

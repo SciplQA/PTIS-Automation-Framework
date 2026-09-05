@@ -101,7 +101,12 @@ this.deleteConfirmButton = page.getByRole('dialog').getByRole('button', {
     }
 
     async navigateFromPropertyTaxModule(): Promise<void> {
-        await this.selectMasterSubmenu('Tax Zone');
+        // The full master run reuses one page and the responsive sidebar may
+        // be re-rendering from the previous module. Navigate to the canonical
+        // route directly; expectLoaded() remains the readiness check.
+        await this.page.goto('/en/property-tax/taxzone-master/taxzone', {
+            waitUntil: 'domcontentloaded'
+        });
     }
 
     async expectLoaded(): Promise<void> {
@@ -393,9 +398,10 @@ this.deleteConfirmButton = page.getByRole('dialog').getByRole('button', {
 
     async clickPage3() {
 
-        const page3Button = this.page.locator(
-            'button:has(span:text("3"))'
-        );
+        const page3Button = this.page.getByRole('button', {
+            name: 'Go to page 3',
+            exact: true
+        }).first();
 
         await page3Button.waitFor({
             state: 'visible',
